@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import zmq
 
@@ -158,14 +158,10 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str) -
                         subscriber._socket = None
                         subscriber._poller = None
                     except Exception as e:
-                        logger.warning(
-                            f"Error closing socket for {topic} in {component_name}: {e}"
-                        )
+                        logger.warning(f"Error closing socket for {topic} in {component_name}: {e}")
                 subscribers_to_join.append((topic, subscriber))
             except Exception as e:
-                logger.warning(
-                    f"Error stopping subscriber {topic} in {component_name}: {e}"
-                )
+                logger.warning(f"Error stopping subscriber {topic} in {component_name}: {e}")
 
     # Then join all threads with a shorter timeout (subscribers poll every 100ms)
     # So 500ms should be more than enough for graceful shutdown
@@ -177,6 +173,4 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str) -
                     f"Subscriber thread for {topic} in {component_name} did not stop within timeout"
                 )
         except Exception as e:
-            logger.warning(
-                f"Error joining subscriber thread {topic} in {component_name}: {e}"
-            )
+            logger.warning(f"Error joining subscriber thread {topic} in {component_name}: {e}")

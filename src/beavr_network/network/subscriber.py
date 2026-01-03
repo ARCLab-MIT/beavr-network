@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 if TYPE_CHECKING:
     import numpy as np
@@ -56,9 +56,7 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
         self._socket_type = socket_type
         self._bind = bind
         # Decoder/encoder for payloads; default to FlatBufferSerializer with expected_type
-        self._serializer: Serializer[T] = serializer or FlatBufferSerializer(
-            root_accessor=None
-        )
+        self._serializer: Serializer[T] = serializer or FlatBufferSerializer(root_accessor=None)
 
     def _init_socket(self, socket_type: int) -> None:
         """Initialize the socket in the worker thread."""
@@ -138,9 +136,7 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
             while self._running:
                 try:
                     if self._socket is None or self._poller is None:
-                        logger.error(
-                            "Socket or poller is None, breaking subscriber loop"
-                        )
+                        logger.error("Socket or poller is None, breaking subscriber loop")
                         break
 
                     # Poll with timeout to check _running periodically
@@ -149,9 +145,7 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
 
                     if events:  # If any events occurred
                         try:
-                            topic_bytes, payload = self._socket.recv_multipart(
-                                zmq.NOBLOCK
-                            )
+                            topic_bytes, payload = self._socket.recv_multipart(zmq.NOBLOCK)
                             topic = topic_bytes.decode("utf-8")
                             try:
                                 data_typed = self._serializer.decode(payload)

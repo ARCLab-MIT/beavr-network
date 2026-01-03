@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 import threading
 from time import monotonic
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import zmq
 
 if TYPE_CHECKING:
-    from .publisher import ZMQPublisherManager
+    pass
 
 from .utils import get_global_context
 
@@ -179,12 +179,8 @@ class HandshakeCoordinator:
             context: Optional custom ZMQ context (default: global context)
         """
         self._context = context or get_global_context()
-        self._subscribers: dict[
-            str, dict[str, Any]
-        ] = {}  # subscriber_id -> {host, port, client}
-        self._servers: dict[
-            str, zmq.Socket | None
-        ] = {}  # subscriber_id -> server_socket
+        self._subscribers: dict[str, dict[str, Any]] = {}  # subscriber_id -> {host, port, client}
+        self._servers: dict[str, zmq.Socket | None] = {}  # subscriber_id -> server_socket
         self._running = True
         self._server_threads: dict[str, threading.Thread] = {}
 
@@ -234,9 +230,7 @@ class HandshakeCoordinator:
                     try:
                         client.close()
                     except Exception as e:
-                        logger.warning(
-                            f"Error closing client for '{subscriber_id}': {e}"
-                        )
+                        logger.warning(f"Error closing client for '{subscriber_id}': {e}")
 
                 del self._subscribers[subscriber_id]
                 logger.info(f"Unregistered subscriber '{subscriber_id}'")
@@ -267,9 +261,7 @@ class HandshakeCoordinator:
         server_thread.start()
         self._server_threads[subscriber_id] = server_thread
 
-        logger.info(
-            f"Started handshake server for '{subscriber_id}' on {bind_host}:{port}"
-        )
+        logger.info(f"Started handshake server for '{subscriber_id}' on {bind_host}:{port}")
 
     def stop_server(self, subscriber_id: str) -> None:
         """Stop a handshake server for a subscriber.
@@ -287,9 +279,7 @@ class HandshakeCoordinator:
                 if subscriber_id in self._server_threads:
                     self._server_threads[subscriber_id].join(timeout=0.5)
                     if self._server_threads[subscriber_id].is_alive():
-                        logger.warning(
-                            f"Server thread for '{subscriber_id}' did not stop gracefully"
-                        )
+                        logger.warning(f"Server thread for '{subscriber_id}' did not stop gracefully")
                     del self._server_threads[subscriber_id]
 
                 logger.info(f"Stopped handshake server for '{subscriber_id}'")
@@ -327,17 +317,13 @@ class HandshakeCoordinator:
                         # Send acknowledgment
                         server_socket.send(b"ACK")
 
-                        logger.debug(
-                            f"Handshake server '{subscriber_id}' acknowledged request"
-                        )
+                        logger.debug(f"Handshake server '{subscriber_id}' acknowledged request")
 
                 except zmq.Again:
                     continue
                 except Exception as e:
                     if self._running and subscriber_id in self._servers:
-                        logger.error(
-                            f"Error in handshake server '{subscriber_id}': {e}"
-                        )
+                        logger.error(f"Error in handshake server '{subscriber_id}': {e}")
                     break
 
             logger.debug(f"Handshake server '{subscriber_id}' stopped")
@@ -348,9 +334,7 @@ class HandshakeCoordinator:
                 try:
                     server_socket.close()
                 except Exception as e:
-                    logger.warning(
-                        f"Error closing handshake server socket for '{subscriber_id}': {e}"
-                    )
+                    logger.warning(f"Error closing handshake server socket for '{subscriber_id}': {e}")
 
     def request_acknowledgments(
         self,
@@ -409,30 +393,20 @@ class HandshakeCoordinator:
                     poller = zmq.Poller()
                     poller.register(client, zmq.POLLIN)
 
-                    events = dict(
-                        poller.poll(int(timeout * 1000))
-                    )  # Convert to milliseconds
+                    events = dict(poller.poll(int(timeout * 1000)))  # Convert to milliseconds
 
                     if client in events:
                         response = client.recv()
                         if response == ack:
                             successful_acks.append(subscriber_id)
-                            logger.debug(
-                                f"Received acknowledgment from '{subscriber_id}'"
-                            )
+                            logger.debug(f"Received acknowledgment from '{subscriber_id}'")
                         else:
-                            logger.warning(
-                                f"Unexpected response from '{subscriber_id}': {response!r}"
-                            )
+                            logger.warning(f"Unexpected response from '{subscriber_id}': {response!r}")
                     else:
-                        logger.warning(
-                            f"Timeout waiting for acknowledgment from '{subscriber_id}'"
-                        )
+                        logger.warning(f"Timeout waiting for acknowledgment from '{subscriber_id}'")
 
                 except Exception as e:
-                    logger.error(
-                        f"Error requesting acknowledgment from '{subscriber_id}': {e}"
-                    )
+                    logger.error(f"Error requesting acknowledgment from '{subscriber_id}': {e}")
 
             success = len(successful_acks) == len(subscriber_ids)
 
@@ -448,19 +422,14 @@ class HandshakeCoordinator:
             # Clean up temporary clients
             with self._lock:
                 for subscriber_id in clients_to_close:
-                    if (
-                        subscriber_id in self._subscribers
-                        and self._subscribers[subscriber_id]["client"]
-                    ):
+                    if subscriber_id in self._subscribers and self._subscribers[subscriber_id]["client"]:
                         try:
                             client = self._subscribers[subscriber_id]["client"]
                             if isinstance(client, zmq.Socket):
                                 client.close()
                             self._subscribers[subscriber_id]["client"] = None
                         except Exception as e:
-                            logger.warning(
-                                f"Error closing temporary client for '{subscriber_id}': {e}"
-                            )
+                            logger.warning(f"Error closing temporary client for '{subscriber_id}': {e}")
 
     def get_registered_subscribers(self) -> list[str]:
         """Get list of currently registered subscriber IDs.
@@ -567,9 +536,7 @@ def publish_with_guaranteed_delivery(
 
         # Request acknowledgments from subscribers
         coordinator = HandshakeCoordinator.get_instance()
-        success = coordinator.request_acknowledgments(
-            subscriber_ids, timeout=handshake_timeout
-        )
+        success = coordinator.request_acknowledgments(subscriber_ids, timeout=handshake_timeout)
 
         if success:
             logger.info(
@@ -585,9 +552,7 @@ def publish_with_guaranteed_delivery(
             )
             return success
         else:
-            logger.error(
-                f"Failed to get acknowledgments from all subscribers for topic '{topic}'"
-            )
+            logger.error(f"Failed to get acknowledgments from all subscribers for topic '{topic}'")
             return False
 
     except Exception as e:
@@ -650,9 +615,7 @@ def setup_operator_handshake(
             bind_host="*",
             port=handshake_port,
         )
-        logger.info(
-            f"Handshake server started for {operator_name} on port {handshake_port}"
-        )
+        logger.info(f"Handshake server started for {operator_name} on port {handshake_port}")
     except Exception as e:
         logger.warning(f"Failed to start handshake server for {operator_name}: {e}")
 
