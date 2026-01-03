@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pickle
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -24,7 +26,9 @@ class Serializer(ABC, Generic[T]):
 class PickleSerializer(Serializer[T]):
     """Pickle-based serializer with optional runtime type validation."""
 
-    def __init__(self, expected_type: type[T] | None = None, allow_subclasses: bool = True):
+    def __init__(
+        self, expected_type: type[T] | None = None, allow_subclasses: bool = True
+    ):
         self._expected_type = expected_type
         self._allow_subclasses = allow_subclasses
 
@@ -36,10 +40,14 @@ class PickleSerializer(Serializer[T]):
         if self._expected_type is not None:
             if self._allow_subclasses:
                 if not isinstance(obj, self._expected_type):
-                    raise TypeError(f"Decoded type {type(obj)} != expected {self._expected_type}")
+                    raise TypeError(
+                        f"Decoded type {type(obj)} != expected {self._expected_type}"
+                    )
             else:
                 if type(obj) is not self._expected_type:
-                    raise TypeError(f"Decoded exact type {type(obj)} != expected {self._expected_type}")
+                    raise TypeError(
+                        f"Decoded exact type {type(obj)} != expected {self._expected_type}"
+                    )
         return obj
 
 
@@ -136,5 +144,7 @@ class FlatBufferSerializer(Serializer[Any]):
             import logging
 
             logger = logging.getLogger(__name__)
-            logger.warning(f"Failed to decode FlatBuffer ({len(buffer)} bytes): {e}, returning raw buffer")
+            logger.warning(
+                f"Failed to decode FlatBuffer ({len(buffer)} bytes): {e}, returning raw buffer"
+            )
             return buffer

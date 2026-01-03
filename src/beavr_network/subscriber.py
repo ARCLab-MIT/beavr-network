@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import logging
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import numpy as np
 
 import cv2
-import numpy as np
 import zmq
 
 from .serialization import FlatBufferSerializer, Serializer
@@ -44,17 +48,19 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
         self._host = host
         self._port = port
         self._topic = topic
-        self._socket = None
+        self._socket: zmq.Socket | None = None
         self._running = True
-        self._poller = None
+        self._poller: zmq.Poller | None = None
         self._context = context or get_global_context()
         # Store socket configuration for creation in worker thread
         self._socket_type = socket_type
         self._bind = bind
         # Decoder/encoder for payloads; default to FlatBufferSerializer with expected_type
-        self._serializer: Serializer[T] = serializer or FlatBufferSerializer(root_accessor=None)
+        self._serializer: Serializer[T] = serializer or FlatBufferSerializer(
+            root_accessor=None
+        )
 
-    def _init_socket(self, socket_type: int):
+    def _init_socket(self, socket_type: int) -> None:
         """Initialize the socket in the worker thread."""
         try:
             self._socket = self._context.socket(socket_type)
@@ -93,7 +99,7 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
         """Get the topic this subscriber is subscribed to."""
         return self._topic
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the subscriber thread gracefully."""
         self._running = False
         if self._socket and self._poller:
@@ -120,7 +126,7 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
         """
         pass
 
-    def run(self):
+    def run(self) -> None:
         """Main subscriber loop with socket creation in worker thread."""
         try:
             # Create socket in the worker thread
@@ -132,7 +138,9 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
             while self._running:
                 try:
                     if self._socket is None or self._poller is None:
-                        logger.error("Socket or poller is None, breaking subscriber loop")
+                        logger.error(
+                            "Socket or poller is None, breaking subscriber loop"
+                        )
                         break
 
                     # Poll with timeout to check _running periodically
@@ -141,7 +149,9 @@ class BaseSubscriber(threading.Thread, ABC, Generic[T]):
 
                     if events:  # If any events occurred
                         try:
-                            topic_bytes, payload = self._socket.recv_multipart(zmq.NOBLOCK)
+                            topic_bytes, payload = self._socket.recv_multipart(
+                                zmq.NOBLOCK
+                            )
                             topic = topic_bytes.decode("utf-8")
                             try:
                                 data_typed = self._serializer.decode(payload)

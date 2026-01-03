@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .handshake import (
     HandshakeClient,
     HandshakeCoordinator,

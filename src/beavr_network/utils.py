@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import zmq
+
+if TYPE_CHECKING:
+    from .publisher import ZMQPublisherManager
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +110,7 @@ def create_request_socket(host: str, port: int) -> zmq.Socket:
     return socket
 
 
-def setup_zmq_context():
+def setup_zmq_context() -> zmq.Context:
     """Get the global ZMQ context.
 
     Returns:
@@ -114,7 +119,7 @@ def setup_zmq_context():
     return get_global_context()
 
 
-def setup_publisher_manager(context):
+def setup_publisher_manager(context: zmq.Context) -> ZMQPublisherManager:
     """Get the ZMQ publisher manager instance.
 
     Args:
@@ -128,7 +133,7 @@ def setup_publisher_manager(context):
     return ZMQPublisherManager.get_instance(context)
 
 
-def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str):
+def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str) -> None:
     """Clean up all subscribers in the provided dictionary.
 
     This function safely stops all subscribers in parallel for faster cleanup,
@@ -153,10 +158,14 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str):
                         subscriber._socket = None
                         subscriber._poller = None
                     except Exception as e:
-                        logger.warning(f"Error closing socket for {topic} in {component_name}: {e}")
+                        logger.warning(
+                            f"Error closing socket for {topic} in {component_name}: {e}"
+                        )
                 subscribers_to_join.append((topic, subscriber))
             except Exception as e:
-                logger.warning(f"Error stopping subscriber {topic} in {component_name}: {e}")
+                logger.warning(
+                    f"Error stopping subscriber {topic} in {component_name}: {e}"
+                )
 
     # Then join all threads with a shorter timeout (subscribers poll every 100ms)
     # So 500ms should be more than enough for graceful shutdown
@@ -168,4 +177,6 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str):
                     f"Subscriber thread for {topic} in {component_name} did not stop within timeout"
                 )
         except Exception as e:
-            logger.warning(f"Error joining subscriber thread {topic} in {component_name}: {e}")
+            logger.warning(
+                f"Error joining subscriber thread {topic} in {component_name}: {e}"
+            )
