@@ -137,3 +137,13 @@ cython_debug/
 # IDE
 .vscode/
 .idea/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# uv
+.uv/
+uv.lock
