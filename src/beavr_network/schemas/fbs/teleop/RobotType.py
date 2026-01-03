@@ -2,6 +2,7 @@
 
 # namespace: teleop
 
-class RobotType(object):
+
+class RobotType:
     arm = 0
     hand = 1

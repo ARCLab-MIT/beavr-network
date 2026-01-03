@@ -102,9 +102,7 @@ class PublisherThread(threading.Thread):
             buffer = self._serializer.encode(data)
             self._queue.put_nowait((topic, buffer))
         except queue.Full:
-            logger.warning(
-                f"Publisher queue full for {self._host}:{self._port}, dropping message"
-            )
+            logger.warning(f"Publisher queue full for {self._host}:{self._port}, dropping message")
             pass
         except Exception as e:
             logger.error(f"Error serializing data for publisher: {e}")
@@ -142,21 +140,15 @@ class PublisherThread(threading.Thread):
 
                     try:
                         # Use multipart messaging and non-blocking send
-                        encoded_topic = (
-                            topic.encode("utf-8") if isinstance(topic, str) else topic
-                        )
-                        self._socket.send_multipart(
-                            [encoded_topic, buffer], zmq.NOBLOCK
-                        )
+                        encoded_topic = topic.encode("utf-8") if isinstance(topic, str) else topic
+                        self._socket.send_multipart([encoded_topic, buffer], zmq.NOBLOCK)
 
                     except zmq.Again:
                         logger.warning(
                             f"High water mark reached for {topic} at {self._host}:{self._port}, dropping message"
                         )
                     except zmq.ZMQError as e:
-                        logger.error(
-                            f"Failed to publish to {topic} at {self._host}:{self._port}: {e}"
-                        )
+                        logger.error(f"Failed to publish to {topic} at {self._host}:{self._port}: {e}")
                         break
 
                 except queue.Empty:
@@ -240,9 +232,7 @@ class ZMQPublisherManager:
 
     _instance: ZMQPublisherManager | None = None
     _publishers: dict[tuple[str, int], PublisherThread] = {}
-    _serializers: dict[
-        tuple[str, int], Serializer
-    ] = {}  # Track serializers per publisher
+    _serializers: dict[tuple[str, int], Serializer] = {}  # Track serializers per publisher
     _lock = threading.Lock()
     _monitor_thread: threading.Thread | None = None
     _running = True
@@ -282,9 +272,7 @@ class ZMQPublisherManager:
 
             # Wait for the thread to start and socket to be ready
             if not publisher_thread.wait_for_start(timeout=5.0):
-                raise ConnectionError(
-                    f"Publisher thread failed to start for {host}:{port}"
-                )
+                raise ConnectionError(f"Publisher thread failed to start for {host}:{port}")
 
             return publisher_thread
         except Exception as e:
@@ -297,9 +285,7 @@ class ZMQPublisherManager:
                 caller = f"{mod_name}.{caller_frame.f_code.co_name}"
 
             logger.error(f"Failed to create publisher thread in {caller}: {e}")
-            raise ConnectionError(
-                f"Failed to create publisher for {host}:{port}: {e}"
-            ) from e
+            raise ConnectionError(f"Failed to create publisher for {host}:{port}: {e}") from e
 
     def publish(
         self,
@@ -392,18 +378,12 @@ class ZMQPublisherManager:
                         try:
                             # Check if thread is still alive
                             if not publisher_thread.is_alive():
-                                logger.warning(
-                                    f"Dead publisher thread detected at {key[0]}:{key[1]}"
-                                )
+                                logger.warning(f"Dead publisher thread detected at {key[0]}:{key[1]}")
                                 self._close_publisher(key)
                         except Exception as e:
-                            logger.error(
-                                f"Error monitoring publisher at {key[0]}:{key[1]}: {e}"
-                            )
+                            logger.error(f"Error monitoring publisher at {key[0]}:{key[1]}: {e}")
 
-        self._monitor_thread = threading.Thread(
-            target=monitor_loop, daemon=True, name="PublisherMonitor"
-        )
+        self._monitor_thread = threading.Thread(target=monitor_loop, daemon=True, name="PublisherMonitor")
         self._monitor_thread.start()
 
     def close_all(self) -> None:

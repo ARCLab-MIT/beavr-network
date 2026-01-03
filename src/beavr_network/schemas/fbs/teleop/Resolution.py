@@ -2,8 +2,7 @@
 
 # namespace: teleop
 
-class Command(object):
-    resume = 0
-    pause = 1
-    reset = 2
-    home = 3
+
+class Resolution:
+    Low = 0
+    High = 1

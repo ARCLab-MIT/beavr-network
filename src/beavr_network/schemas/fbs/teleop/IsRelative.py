@@ -2,6 +2,7 @@
 
 # namespace: teleop
 
-class Resolution(object):
-    Low = 0
-    High = 1
+
+class IsRelative:
+    relative = 0
+    absolute = 1

@@ -2,6 +2,7 @@
 
 # namespace: teleop
 
-class ControlMode(object):
+
+class ControlMode:
     joint = 0
     cartesian = 1

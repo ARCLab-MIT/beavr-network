@@ -5,7 +5,7 @@ from pathlib import Path
 def compile_schemas():
     """Compile all FlatBuffer schemas in the package."""
     # Find the directory where this script is located
-    schema_dir = Path(__file__).parent / "flatbuffers"
+    schema_dir = Path(__file__).parent / "fbs"
 
     if not schema_dir.exists():
         print(f"Error: Schema directory not found at {schema_dir}")
@@ -26,9 +26,7 @@ def compile_schemas():
         except subprocess.CalledProcessError as e:
             print(f"  Error compiling {fbs.name}: {e}")
         except FileNotFoundError:
-            print(
-                "Error: 'flatc' command not found. Please install FlatBuffers compiler."
-            )
+            print("Error: 'flatc' command not found. Please install FlatBuffers compiler.")
             break
 
 

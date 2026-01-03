@@ -2,6 +2,9 @@
 
 # namespace: teleop
 
-class IsRelative(object):
-    relative = 0
-    absolute = 1
+
+class Command:
+    resume = 0
+    pause = 1
+    reset = 2
+    home = 3

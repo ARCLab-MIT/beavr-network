@@ -9,6 +9,8 @@ dependencies = [
     "numpy",
     "opencv-python",
     "turbojpeg",
+    "flatbuffers>=25.12.19",
+    "ruff>=0.14.10",
 ]
 
 [project.scripts]

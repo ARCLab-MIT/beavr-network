@@ -1,3 +1,4 @@
+exclude: '^src/beavr_network/schemas/fbs/'
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.13.0

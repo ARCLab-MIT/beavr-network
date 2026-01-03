@@ -4,10 +4,12 @@
 
 import flatbuffers
 from flatbuffers.compat import import_numpy
+
 np = import_numpy()
 
-class JointState(object):
-    __slots__ = ['_tab']
+
+class JointState:
+    __slots__ = ["_tab"]
 
     @classmethod
     def GetRootAs(cls, buf, offset=0):
@@ -20,6 +22,7 @@ class JointState(object):
     def GetRootAsJointState(cls, buf, offset=0):
         """This method is deprecated. Please switch to GetRootAs."""
         return cls.GetRootAs(buf, offset)
+
     # JointState
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
@@ -36,7 +39,10 @@ class JointState(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             a = self._tab.Vector(o)
-            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
+            return self._tab.Get(
+                flatbuffers.number_types.Float32Flags,
+                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4),
+            )
         return 0
 
     # JointState
@@ -72,34 +78,72 @@ class JointState(object):
             return self._tab.Get(flatbuffers.number_types.Float64Flags, o + self._tab.Pos)
         return 0.0
 
-def JointStateStart(builder): builder.StartObject(4)
+
+def JointStateStart(builder):
+    builder.StartObject(4)
+
+
 def Start(builder):
     return JointStateStart(builder)
-def JointStateAddHandSide(builder, handSide): builder.PrependUint8Slot(0, handSide, 0)
+
+
+def JointStateAddHandSide(builder, handSide):
+    builder.PrependUint8Slot(0, handSide, 0)
+
+
 def AddHandSide(builder, handSide):
     return JointStateAddHandSide(builder, handSide)
-def JointStateAddJointPositionsRad(builder, jointPositionsRad): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(jointPositionsRad), 0)
+
+
+def JointStateAddJointPositionsRad(builder, jointPositionsRad):
+    builder.PrependUOffsetTRelativeSlot(
+        1, flatbuffers.number_types.UOffsetTFlags.py_type(jointPositionsRad), 0
+    )
+
+
 def AddJointPositionsRad(builder, jointPositionsRad):
     return JointStateAddJointPositionsRad(builder, jointPositionsRad)
-def JointStateStartJointPositionsRadVector(builder, numElems): return builder.StartVector(4, numElems, 4)
+
+
+def JointStateStartJointPositionsRadVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+
 def StartJointPositionsRadVector(builder, numElems):
     return JointStateStartJointPositionsRadVector(builder, numElems)
-def JointStateAddCommand(builder, command): builder.PrependUint8Slot(2, command, 0)
+
+
+def JointStateAddCommand(builder, command):
+    builder.PrependUint8Slot(2, command, 0)
+
+
 def AddCommand(builder, command):
     return JointStateAddCommand(builder, command)
-def JointStateAddTimestamp(builder, timestamp): builder.PrependFloat64Slot(3, timestamp, 0.0)
+
+
+def JointStateAddTimestamp(builder, timestamp):
+    builder.PrependFloat64Slot(3, timestamp, 0.0)
+
+
 def AddTimestamp(builder, timestamp):
     return JointStateAddTimestamp(builder, timestamp)
-def JointStateEnd(builder): return builder.EndObject()
+
+
+def JointStateEnd(builder):
+    return builder.EndObject()
+
+
 def End(builder):
     return JointStateEnd(builder)
+
+
 try:
-    from typing import List
+    pass
 except:
     pass
 
-class JointStateT(object):
 
+class JointStateT:
     # JointStateT
     def __init__(self):
         self.handSide = 0  # type: int
