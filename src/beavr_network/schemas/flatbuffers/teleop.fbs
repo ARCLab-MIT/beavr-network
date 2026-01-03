@@ -1,0 +1,84 @@
+namespace teleop;
+
+// --------------------VR schemas-------------------- //
+
+// Keypoints are the 26 keypoints of the hand derived from the Oculus VR detector.
+// Each keypoint is a 3D point in space (x, y, z).
+// This is the meat of the VR input.
+
+// This controls the teleop state, so we can stop or resume
+// data flow or send generic commands to the robot.
+enum Command:ubyte {
+  resume = 0,
+  pause = 1,
+  reset = 2,
+  home  = 3
+}
+
+// Helpful when your robot has lateralities.
+enum HandSide:ubyte {
+  right = 0,
+  left = 1,
+  bimanual = 2
+}
+
+enum IsRelative:ubyte {
+  relative = 0,
+  absolute = 1
+}
+
+enum Resolution:ubyte {
+  Low = 0,
+  High = 1
+}
+
+table VRInput {
+  keypoints: [float]; // 26 keypoints * 3 coordinates each
+  hand_side: HandSide;
+  is_relative: IsRelative;
+  command: Command;
+  resolution: Resolution;
+}
+
+// Stores cartesian poses and keypoint mappings.
+// Helpful for arm and hand robots and should be all you need.
+table InputFrame {
+  keypoints: [float]; // 26 keypoints * 3 coordinates each
+  hand_side: HandSide;
+  is_relative: IsRelative;
+  command: Command;
+  coordinate_frame: [float];
+}
+
+// Simple command message for pause/resume signals
+table CommandMessage {
+  command: Command;
+}
+
+// --------------------Component schemas-------------------- //
+
+table CartesianState {
+  hand_side: HandSide;
+  position_meters: [float];
+  orientation_quat: [float];
+  homo_matrix: [float];
+  command: Command;
+  timestamp: double = 0;  // Timestamp for latency tracking
+}
+
+table JointState {
+  hand_side: HandSide;
+  joint_positions_rad: [float];
+  command: Command;
+  timestamp: double = 0;  // Timestamp for latency tracking
+}
+
+enum ControlMode:ubyte {
+  joint = 0,
+  cartesian = 1
+}
+
+enum RobotType:ubyte {
+  arm = 0,
+  hand = 1
+}

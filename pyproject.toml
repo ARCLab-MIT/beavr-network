@@ -11,6 +11,9 @@ dependencies = [
     "turbojpeg",
 ]
 
+[project.scripts]
+beavr-compile-schemas = "beavr_network.schemas.compiler:compile_schemas"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
