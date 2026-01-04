@@ -69,14 +69,16 @@ class PublisherThread(threading.Thread):
         port: int,
         context: zmq.Context | None = None,
         serializer: Serializer | None = None,
+        use_bind: bool = True,
     ):
         """Initialize publisher thread.
 
         Args:
-            host: The host address to bind to
-            port: The port number to bind to
+            host: The host address to bind/connect to
+            port: The port number to bind/connect to
             context: Optional custom ZMQ context (default: global context)
             serializer: Optional serializer for encoding data (default: FlatBufferSerializer)
+            use_bind: If True, bind to the address. If False, connect to the address.
         """
         super().__init__(daemon=True)
         self._host = host
@@ -85,6 +87,7 @@ class PublisherThread(threading.Thread):
         self._serializer = serializer or FlatBufferSerializer(root_accessor=None)
         self._socket: zmq.Socket | None = None
         self._running = True
+        self._use_bind = use_bind
         self._queue: queue.Queue[tuple[str | None, Any]] = queue.Queue(
             maxsize=100
         )  # Limit queue size to prevent memory issues
@@ -123,8 +126,13 @@ class PublisherThread(threading.Thread):
             # Create socket in the worker thread
             self._socket = self._context.socket(zmq.PUB)
             self._socket.setsockopt(zmq.SNDHWM, 1)  # Only keep latest message
-            addr = f"tcp://*:{self._port}"
-            self._socket.bind(addr)
+
+            if self._use_bind:
+                addr = f"tcp://*:{self._port}"
+                self._socket.bind(addr)
+            else:
+                addr = f"tcp://{self._host}:{self._port}"
+                self._socket.connect(addr)
 
             # Signal that socket is ready
             self._started.set()
@@ -262,12 +270,11 @@ class ZMQPublisherManager:
                     cls._instance = cls(context)
         return cls._instance
 
-    def _create_publisher_thread(self, host: str, port: int) -> PublisherThread:
+    def _create_publisher_thread(self, host: str, port: int, use_bind: bool = True) -> PublisherThread:
         """Create a new publisher thread with error handling."""
         try:
-            key = (host, port)
-            serializer = self._serializers.get(key)
-            publisher_thread = PublisherThread(host, port, self._context, serializer)
+            serializer = self._serializers.get((host, port))
+            publisher_thread = PublisherThread(host, port, self._context, serializer, use_bind)
             publisher_thread.start()
 
             # Wait for the thread to start and socket to be ready
@@ -294,6 +301,7 @@ class ZMQPublisherManager:
         topic: str,
         data: Any,
         serializer: Serializer | None = None,
+        use_bind: bool = True,
     ) -> None:
         """Publish data to a topic with thread-safe queue-based communication.
 
@@ -303,6 +311,7 @@ class ZMQPublisherManager:
             topic: The topic to publish to
             data: The data to publish
             serializer: Optional serializer to use for this publisher (sets it if not already set)
+            use_bind: If True, bind to the address. If False, connect to the address.
 
         Raises:
             ConnectionError: If publishing fails
@@ -316,18 +325,19 @@ class ZMQPublisherManager:
                     if key not in self._serializers:
                         self._serializers[key] = serializer
 
-            publisher_thread = self.get_publisher_thread(host, port)
+            publisher_thread = self.get_publisher_thread(host, port, use_bind)
             publisher_thread.send(topic, data)
         except Exception as e:
             logger.error(f"Unexpected error in publish: {e}")
             raise
 
-    def get_publisher_thread(self, host: str, port: int) -> PublisherThread:
+    def get_publisher_thread(self, host: str, port: int, use_bind: bool = True) -> PublisherThread:
         """Get or create a publisher thread for the given host and port with thread safety.
 
         Args:
             host: The host address
             port: The port number
+            use_bind: If True, bind to the address. If False, connect to the address.
 
         Returns:
             The PublisherThread instance
@@ -335,10 +345,10 @@ class ZMQPublisherManager:
         Raises:
             ConnectionError: If publisher creation fails
         """
-        key = (host, port)
+        key = (host, port, use_bind)
         with self._lock:
             if key not in self._publishers:
-                self._publishers[key] = self._create_publisher_thread(host, port)
+                self._publishers[key] = self._create_publisher_thread(host, port, use_bind)
             return self._publishers[key]
 
     def _close_publisher(self, key: tuple[str, int]) -> None:
