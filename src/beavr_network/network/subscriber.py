@@ -294,3 +294,86 @@ class ZMQButtonFeedbackSubscriber(BaseSubscriber[T], Generic[T]):
             The latest button feedback data if available, None otherwise
         """
         return self._last_data
+
+
+class MultiplexedZMQSubscriber(ZMQSubscriber[T]):
+    """Extension of ZMQSubscriber to handle multiple topics on a single port.
+
+    Stores the latest message for each specific topic separately, allowing
+    retrieval by topic name. Useful for multi-robot setups where all robots
+    share a single action/observation port.
+
+    Example:
+        sub = MultiplexedZMQSubscriber(
+            host="localhost",
+            port=5556,
+            topic="action_",  # Common prefix
+            expected_topics={"action_arm_xarm7_right", "action_hand_leap_right"},
+        )
+        # Later...
+        msg = sub.get_data_for_topic("action_arm_xarm7_right")
+    """
+
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        topic: str,
+        context: zmq.Context | None = None,
+        serializer: Serializer[T] | None = None,
+        bind: bool = False,
+        expected_topics: set[str] | None = None,
+    ):
+        """Initialize multiplexed subscriber.
+
+        Args:
+            host: Host address to connect/bind to
+            port: Port number
+            topic: Topic prefix to subscribe to (e.g., "action_")
+            context: Optional ZMQ context
+            serializer: Serializer for message payloads
+            bind: Whether to bind instead of connect
+            expected_topics: Optional set of valid topic names for validation
+        """
+        self._topic_data: dict[str, T] = {}
+        self._expected_topics = expected_topics or set()
+        self._unknown_topic_warned: set[str] = set()
+        super().__init__(
+            host=host,
+            port=port,
+            topic=topic,
+            context=context,
+            serializer=serializer,
+            bind=bind,
+        )
+
+    def cache(self, topic: str, data: T) -> None:
+        """Cache received data by topic.
+
+        Args:
+            topic: The topic the data was received on
+            data: The received data
+        """
+        # Validate topic if expected topics are configured
+        if self._expected_topics and topic not in self._expected_topics:
+            if topic not in self._unknown_topic_warned:
+                logger.error(
+                    f"❌ UNKNOWN TOPIC: '{topic}'\n"
+                    f"   Expected one of: {sorted(self._expected_topics)}\n"
+                    f"   Hint: Use the manifest endpoint (port 5554) to get correct topic names"
+                )
+                self._unknown_topic_warned.add(topic)
+            return  # Don't cache unknown topics
+
+        self._topic_data[topic] = data
+
+    def get_data_for_topic(self, topic: str) -> T | None:
+        """Get the latest data for a specific topic.
+
+        Args:
+            topic: The exact topic name to retrieve
+
+        Returns:
+            The latest data for this topic, or None if not yet received
+        """
+        return self._topic_data.get(topic)

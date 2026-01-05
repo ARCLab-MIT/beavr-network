@@ -89,7 +89,7 @@ class PublisherThread(threading.Thread):
         self._running = True
         self._use_bind = use_bind
         self._queue: queue.Queue[tuple[str | None, Any]] = queue.Queue(
-            maxsize=100
+            maxsize=1000
         )  # Limit queue size to prevent memory issues
         self._started = threading.Event()
 
@@ -103,12 +103,23 @@ class PublisherThread(threading.Thread):
         try:
             # Serialize data here to avoid blocking the main thread
             buffer = self._serializer.encode(data)
+
+            # IMPORTANT: Thread Safety Snapshot
+            # FlatBuffer builders are reused for zero-copy performance.
+            # However, passing a mutable buffer (memoryview) to another thread is unsafe
+            # because the main thread will overwrite it in the next frame.
+            # We enforce a "Snapshot Copy" here (~0.5us cost) to ensure the
+            # queued message is immutable and safe.
+            if isinstance(buffer, (bytearray, memoryview)):
+                buffer = bytes(buffer)
+
             self._queue.put_nowait((topic, buffer))
         except queue.Full:
             logger.warning(f"Publisher queue full for {self._host}:{self._port}, dropping message")
-            pass
         except Exception as e:
-            logger.error(f"Error serializing data for publisher: {e}")
+            logger.error(
+                f"Error serializing data for publisher at {self._host}:{self._port}: {e}", exc_info=True
+            )
 
     def stop(self) -> None:
         """Stop the publisher thread gracefully."""
@@ -125,7 +136,8 @@ class PublisherThread(threading.Thread):
         try:
             # Create socket in the worker thread
             self._socket = self._context.socket(zmq.PUB)
-            self._socket.setsockopt(zmq.SNDHWM, 1)  # Only keep latest message
+            self._socket.setsockopt(zmq.SNDHWM, 1000)  # Increase HWM for high-throughput sim
+            self._socket.setsockopt(zmq.LINGER, 0)  # Don't block on close
 
             if self._use_bind:
                 addr = f"tcp://*:{self._port}"
@@ -164,11 +176,15 @@ class PublisherThread(threading.Thread):
                     continue
                 except Exception as e:
                     if self._running:
-                        logger.error(f"Error in publisher loop: {e}")
+                        logger.error(
+                            f"Error in publisher loop at {self._host}:{self._port}: {e}", exc_info=True
+                        )
                     break
 
         except Exception as e:
-            logger.error(f"Failed to initialize publisher socket: {e}")
+            logger.error(
+                f"Failed to initialize publisher socket at {self._host}:{self._port}: {e}", exc_info=True
+            )
         finally:
             # Ensure socket is closed when thread exits
             if self._socket:
