@@ -174,3 +174,74 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str) -
                 )
         except Exception as e:
             logger.warning(f"Error joining subscriber thread {topic} in {component_name}: {e}")
+
+
+def wait_for_server_ready(
+    host: str,
+    port: int,
+    timeout_sec: float = 30.0,
+    check_interval_sec: float = 0.5,
+    is_alive_callback: callable = None,
+) -> bool:
+    """Wait for a BEAVR server to be ready by checking manifest/ready endpoint.
+
+    This is a shared utility for checking if a simulation server or similar
+    ZMQ-based server is ready to accept connections.
+
+    Args:
+        host: Server host address (e.g., "127.0.0.1")
+        port: Manifest/ready-check port
+        timeout_sec: Maximum time to wait for server
+        check_interval_sec: Time between ready checks
+        is_alive_callback: Optional callback that returns False if we should abort waiting
+                          (e.g., if the process exited)
+
+    Returns:
+        True if server is ready, False if timeout or abort
+    """
+    import time
+
+    from beavr_configs.sim.protocol import ManifestCommand
+
+    start_time = time.time()
+    context = zmq.Context()
+
+    try:
+        socket = context.socket(zmq.REQ)
+        socket.setsockopt(zmq.RCVTIMEO, 1000)  # 1 second timeout per attempt
+        socket.setsockopt(zmq.LINGER, 0)
+        endpoint = f"tcp://{host}:{port}"
+        socket.connect(endpoint)
+
+        while time.time() - start_time < timeout_sec:
+            # Check if we should abort
+            if is_alive_callback is not None and not is_alive_callback():
+                logger.error("Server process exited during startup")
+                return False
+
+            try:
+                socket.send_string(ManifestCommand.PING)
+                response = socket.recv_string()
+                if response == "OK":
+                    logger.info(f"✅ Server at {endpoint} is ready")
+                    return True
+            except zmq.Again:
+                # Timeout, try again
+                pass
+            except zmq.ZMQError as e:
+                logger.debug(f"ZMQ error checking server: {e}")
+                # Recreate socket for retrying (ZMQ REQ/REP strict alternation)
+                socket.close()
+                socket = context.socket(zmq.REQ)
+                socket.setsockopt(zmq.RCVTIMEO, 1000)
+                socket.setsockopt(zmq.LINGER, 0)
+                socket.connect(endpoint)
+
+            time.sleep(check_interval_sec)
+
+        logger.error(f"Timeout waiting for server at {endpoint}")
+        return False
+
+    finally:
+        socket.close()
+        context.term()
