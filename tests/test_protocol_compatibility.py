@@ -4,7 +4,10 @@ These tests verify that the shared protocol is used consistently and correctly.
 """
 
 import pytest
-from beavr_network import DefaultPorts, ProtocolConfig, TopicBuilder, TopicPrefix
+from beavr_configs.shared.enums import TopicPrefix
+from beavr_configs.sim.protocol import SimPorts, SimProtocolConfig
+from beavr_configs.teleop.topic_builder import TopicBuilder
+
 from beavr_network.schemas.fbs.teleop.HandSide import HandSide
 
 
@@ -51,41 +54,41 @@ class TestTopicNaming:
 class TestPortConstants:
     """Test that default ports are consistent."""
 
-    def test_manifest_port(self):
-        """Test manifest port is 5554."""
-        assert DefaultPorts.MANIFEST == 5554
+    def test_discovery_port(self):
+        """Test discovery port is 5554."""
+        assert SimPorts.DISCOVERY == 5554
 
     def test_observation_port(self):
         """Test observation port is 5555."""
-        assert DefaultPorts.OBSERVATION == 5555
+        assert SimPorts.OBSERVATION == 5555
 
     def test_action_port(self):
         """Test action port is 5556."""
-        assert DefaultPorts.ACTION == 5556
+        assert SimPorts.ACTION == 5556
 
     def test_ports_are_unique(self):
         """Test all ports are  unique."""
-        ports = [DefaultPorts.MANIFEST, DefaultPorts.OBSERVATION, DefaultPorts.ACTION]
+        ports = [SimPorts.DISCOVERY, SimPorts.OBSERVATION, SimPorts.ACTION]
         assert len(ports) == len(set(ports))
 
 
-class TestProtocolConfig:
+class TestSimProtocolConfig:
     """Test protocol configuration constants."""
 
     def test_version(self):
         """Test protocol version is defined."""
-        assert ProtocolConfig.VERSION
-        assert isinstance(ProtocolConfig.VERSION, str)
+        assert SimProtocolConfig.VERSION
+        assert isinstance(SimProtocolConfig.VERSION, str)
 
     def test_topic_separator(self):
         """Test topic separator is underscore."""
-        assert ProtocolConfig.TOPIC_SEPARATOR == "_"
+        assert SimProtocolConfig.TOPIC_SEPARATOR == "_"
 
     def test_validation_pattern(self):
         """Test validation pattern is defined."""
         import re
 
-        pattern = ProtocolConfig.VALID_TOPIC_PATTERN
+        pattern = SimProtocolConfig.VALID_TOPIC_PATTERN
         assert pattern
 
         # Test pattern works
@@ -99,11 +102,11 @@ class TestTopicPrefixes:
 
     def test_action_prefix(self):
         """Test action prefix."""
-        assert TopicPrefix.ACTION == "action_"
+        assert TopicPrefix.ACTION == "action"
 
     def test_observation_prefix(self):
         """Test observation prefix."""
-        assert TopicPrefix.OBSERVATION == "observation_"
+        assert TopicPrefix.OBSERVATION == "observation"
 
 
 class TestCrossRepoConsistency:

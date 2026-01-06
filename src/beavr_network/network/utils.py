@@ -179,6 +179,7 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str) -
 def wait_for_server_ready(
     host: str,
     port: int,
+    command: Any,
     timeout_sec: float = 30.0,
     check_interval_sec: float = 0.5,
     is_alive_callback: callable = None,
@@ -201,8 +202,6 @@ def wait_for_server_ready(
     """
     import time
 
-    from beavr_configs.sim.protocol import ManifestCommand
-
     start_time = time.time()
     context = zmq.Context()
 
@@ -220,7 +219,7 @@ def wait_for_server_ready(
                 return False
 
             try:
-                socket.send_string(ManifestCommand.PING)
+                socket.send_string(command.PING)
                 response = socket.recv_string()
                 if response == "OK":
                     logger.info(f"✅ Server at {endpoint} is ready")

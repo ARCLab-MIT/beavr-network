@@ -7,6 +7,7 @@ from .handshake import (
     publish_with_guaranteed_delivery,
 )
 from .publisher import BasePublisher, PublisherThread, ZMQPublisherManager
+from .service_server import ZMQServiceServer
 from .subscriber import BaseSubscriber
 from .utils import (
     SerializationError,
@@ -25,6 +26,7 @@ __all__ = [
     "PublisherThread",
     "SerializationError",
     "ZMQPublisherManager",
+    "ZMQServiceServer",
     "cleanup_zmq_resources",
     "get_global_context",
     "publish_with_guaranteed_delivery",
