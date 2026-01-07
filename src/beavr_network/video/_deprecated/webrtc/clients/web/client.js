@@ -19,8 +19,12 @@ async function loadInfo() {
         if (info && info.resolution && info.fps && infoEl) {
             infoEl.innerHTML = `<strong>Resolution:</strong> ${info.resolution[0]}x${info.resolution[1]} @ ${info.fps}fps<br><strong>Codec:</strong> H.264 via WebRTC`;
         }
+        // Auto-connect once info is loaded
+        connect();
     } catch (err) {
-        // ignore
+        console.warn('Failed to load info', err);
+        // Fallback to connect anyway
+        connect();
     }
 }
 

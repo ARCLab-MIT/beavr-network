@@ -405,10 +405,23 @@ class HTTPSignalingServer(SignalingServer):
             import threading
 
             def run_loop():
-                asyncio.set_event_loop(self._loop)
-                self._loop.run_until_complete(self._run_server())
+                try:
+                    asyncio.set_event_loop(self._loop)
+                    self._loop.run_until_complete(self._run_server())
+                except RuntimeError as e:
+                    # Ignore "Event loop stopped before Future completed"
+                    if "stopped before Future completed" not in str(e):
+                        logger.error(f"RuntimeError in HTTP signaling loop: {e}")
+                except Exception as e:
+                    logger.error(f"Exception in HTTP signaling loop: {e}")
+                finally:
+                    try:
+                        self._loop.close()
+                    except Exception:
+                        pass
+                    logger.debug("HTTP signaling event loop closed")
 
-            self._server_thread = threading.Thread(target=run_loop, daemon=True)
+            self._server_thread = threading.Thread(target=run_loop, name="HTTPSignalingThread", daemon=True)
             self._server_thread.start()
 
             return True
@@ -427,11 +440,14 @@ class HTTPSignalingServer(SignalingServer):
             except Exception:
                 pass
 
-        if self._loop is not None:
+        if self._loop is not None and self._loop.is_running():
             try:
                 self._loop.call_soon_threadsafe(self._loop.stop)
             except Exception:
                 pass
+
+        if hasattr(self, "_server_thread"):
+            self._server_thread.join(timeout=1.0)
 
         logger.info("HTTP signaling server stopped")
 

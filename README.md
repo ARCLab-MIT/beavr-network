@@ -11,12 +11,15 @@ This package is designed to be used as a shared dependency across multiple BEAVR
 If you are working on this library and want to see changes reflected immediately in your other projects, use an **editable install**.
 
 ### 1. Clone the repository
+
 ```bash
 git clone https://github.com/ARCLab-MIT/beavr-network.git
 ```
 
 ### 2. Link to your project (using `uv`)
+
 In your simulation or control repository, run:
+
 ```bash
 uv add --editable ../path/to/beavr-network
 ```
@@ -39,6 +42,7 @@ beavr-network = { git = "https://github.com/ARCLab-MIT/beavr-network.git", branc
 
 ## Features
 
+- **LiveKit Streaming**: High-performance WebRTC video streaming via LiveKit SFU. See [LIVEKIT.md](docs/LIVEKIT.md) for setup and dev guide.
 - **ZMQ Patterns**: Simplified wrappers for PUB/SUB and REQ/REP.
 - **Serialization**: Support for Pickle (numpy-friendly) and FlatBuffers (zero-copy).
 - **Handshaking**: Utilities for guaranteed delivery and connection synchronization.

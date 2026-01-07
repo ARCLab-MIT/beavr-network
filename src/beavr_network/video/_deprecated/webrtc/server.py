@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
 import aioice
+import aiortc.codecs.h264
+import aiortc.codecs.vpx
 import numpy as np
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCRtpSender, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
@@ -26,6 +28,17 @@ from .signaling import (
     SignalingServer,
     ZMQSignalingServer,
 )
+
+# -----------------------------------------------------------------------------
+# WebRTC Quality Monkey-Patch
+# -----------------------------------------------------------------------------
+# aiortc has hardcoded limits for bitrate (H264: 3 Mbps, VP8: 1.5 Mbps).
+# We monkey-patch these to allow for ultra-high quality streaming as requested.
+# Using 20 Mbps as the max for both.
+aiortc.codecs.h264.MAX_BITRATE = 20_000_000
+aiortc.codecs.h264.DEFAULT_BITRATE = 10_000_000  # Default to 10 Mbps
+aiortc.codecs.vpx.MAX_BITRATE = 20_000_000
+aiortc.codecs.vpx.DEFAULT_BITRATE = 10_000_000
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +85,7 @@ class WebRTCStreamServerConfig:
     doc_root: str | None = None
     signaling_type: Literal["http", "zmq"] = "http"
     codec: Literal["H264", "VP8"] = "H264"
+    bitrate: int = 10_000_000  # Target bitrate in bps (10 Mbps default)
 
 
 # -----------------------------------------------------------------------------
@@ -438,6 +452,9 @@ class WebRTCStreamServer:
                 video_track=video_track,
                 connected_at=time.time(),
             )
+
+            # Note: bitrate is now handled by monkey-patching aiortc.codecs (see top of file)
+            # which affects all new encoder instances.
 
             logger.info(f"Client {client_id} connected")
 
