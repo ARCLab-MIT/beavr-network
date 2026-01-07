@@ -3,7 +3,7 @@ services:
     image: livekit/livekit-server
     command: --dev --bind 0.0.0.0
     ports:
-      - "7880:7880"       # WebSocket signaling
-      - "7881:7881/udp"   # WebRTC media (UDP)
-      - "7881:7881/tcp"   # WebRTC media (TCP fallback)
+      - "7880:7880" # WebSocket signaling
+      - "7881:7881/udp" # WebRTC media (UDP)
+      - "7881:7881/tcp" # WebRTC media (TCP fallback)
     restart: unless-stopped

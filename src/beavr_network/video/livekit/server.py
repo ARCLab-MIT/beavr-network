@@ -9,10 +9,9 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from beavr_configs.network.defaults import DEFAULT_PROFILE
 from livekit import api, rtc
 from numpy.typing import NDArray
-
-from beavr_network.video.livekit.constants import DEFAULT_PROFILE
 
 logger = logging.getLogger(__name__)
 
