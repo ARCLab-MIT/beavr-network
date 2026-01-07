@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import zmq
 
@@ -176,15 +176,27 @@ def cleanup_subscribers(subscribers_dict: dict[str, Any], component_name: str) -
             logger.warning(f"Error joining subscriber thread {topic} in {component_name}: {e}")
 
 
+@runtime_checkable
+class ServerCommandProtocol(Protocol):
+    """Protocol for server commands like PING, GET_DISCOVERY, and READY_CHECK."""
+
+    PING: str
+    GET_DISCOVERY: str
+    READY_CHECK: str
+
+
+# TODO: For the future maybe these can be a part of service_server as class functions?
+#  I want to centralize all server checks and discovery under one class if possible
+#  rather than scattered utils
 def wait_for_server_ready(
     host: str,
     port: int,
-    command: Any,
+    command: ServerCommandProtocol,
     timeout_sec: float = 30.0,
     check_interval_sec: float = 0.5,
     is_alive_callback: callable = None,
 ) -> bool:
-    """Wait for a BEAVR server to be ready by checking manifest/ready endpoint.
+    """Wait for a BEAVR server to be ready by checking its PING endpoint.
 
     This is a shared utility for checking if a simulation server or similar
     ZMQ-based server is ready to accept connections.
@@ -244,3 +256,84 @@ def wait_for_server_ready(
     finally:
         socket.close()
         context.term()
+
+
+def fetch_discovery_info(
+    host: str,
+    port: int,
+    command: str,
+    timeout_ms: int = 3000,
+) -> str:
+    """Fetch discovery data from a server using ZMQ REQ/REP.
+
+    This is a generic utility that doesn't depend on specific schemas.
+
+    Args:
+        host: Server hostname or IP address
+        port: Discovery endpoint port
+        command: The command string to send (e.g., "GET_DISCOVERY")
+        timeout_ms: Timeout in milliseconds for the request
+
+    Returns:
+        The raw response string from the server
+
+    Raises:
+        ConnectionError: If server is unreachable or times out
+        zmq.ZMQError: For other ZMQ-specific errors
+    """
+    ctx = zmq.Context.instance()
+    socket = ctx.socket(zmq.REQ)
+    # Set timeouts
+    socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+    socket.setsockopt(zmq.LINGER, 0)
+
+    endpoint = f"tcp://{host}:{int(port)}"
+
+    try:
+        socket.connect(endpoint)
+        socket.send_string(command)
+        response = socket.recv_string()
+        return response
+    except zmq.Again as exc:
+        raise ConnectionError(f"Discovery request to {endpoint} timed out after {timeout_ms}ms.") from exc
+    finally:
+        socket.close()
+
+
+def verify_server_ready(
+    host: str,
+    port: int,
+    command: str,
+    timeout_ms: int = 3000,
+) -> dict:
+    """Verify simulation server is ready and topics are valid.
+
+    Sends a request to the server and expects a JSON response with a
+    'ready' field.
+
+    Args:
+        host: Server hostname or IP address
+        port: Discovery endpoint port
+        command: The command string to send (e.g., "READY_CHECK <topics>")
+        timeout_ms: Timeout in milliseconds
+
+    Returns:
+        The parsed JSON response
+
+    Raises:
+        ConnectionError: If server is unreachable or times out
+        ValueError: If response is not valid JSON or ready check fails
+    """
+    import json
+
+    response_str = fetch_discovery_info(host, port, command, timeout_ms)
+
+    try:
+        response = json.loads(response_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON response from server: {e}") from e
+
+    if not isinstance(response, dict):
+        raise ValueError(f"Expected JSON dictionary from server, got {type(response)}")
+
+    return response

@@ -12,8 +12,10 @@ from .subscriber import BaseSubscriber
 from .utils import (
     SerializationError,
     cleanup_zmq_resources,
+    fetch_discovery_info,
     get_global_context,
     set_global_context,
+    verify_server_ready,
     wait_for_server_ready,
 )
 
@@ -28,8 +30,10 @@ __all__ = [
     "ZMQPublisherManager",
     "ZMQServiceServer",
     "cleanup_zmq_resources",
+    "fetch_discovery_info",
     "get_global_context",
     "publish_with_guaranteed_delivery",
     "set_global_context",
+    "verify_server_ready",
     "wait_for_server_ready",
 ]

@@ -89,7 +89,11 @@ class ZMQServiceServer(ABC):
                     logger.exception(f"❌ {self._name} error handling '{request}'")
                     response = {"error": str(e)}
 
-                self._socket.send_string(json.dumps(response))
+                # Send response - support both string and dict types
+                if isinstance(response, str):
+                    self._socket.send_string(response)
+                else:
+                    self._socket.send_string(json.dumps(response))
 
             except zmq.Again:
                 # Timeout - check shutdown flag
@@ -124,7 +128,7 @@ class ZMQServiceServer(ABC):
         return self._thread is not None and self._thread.is_alive()
 
     @abstractmethod
-    def handle_request(self, request: str, payload: str | None) -> dict:
+    def handle_request(self, request: str, payload: str | None) -> dict | str:
         """Handle an incoming request.
 
         Args:
@@ -132,6 +136,6 @@ class ZMQServiceServer(ABC):
             payload: Optional JSON payload string (parse with json.loads)
 
         Returns:
-            Response dict to be serialized as JSON
+            Response dict (will be JSON-encoded) or string (sent as-is)
         """
         ...

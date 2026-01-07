@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Camera Stream</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>📹 Camera Stream</h1>
+        <span id="status" class="status connecting">Connecting...</span>
+        <br><br>
+        <video id="video" autoplay playsinline muted></video>
+        <div style="margin-top:12px;">
+            <button id="btn-connect">Connect</button>
+            <button id="btn-disconnect">Disconnect</button>
+        </div>
+        <div class="info">
+            <strong>Resolution:</strong> {{WIDTH}}x{{HEIGHT}} @ {{FPS}}fps<br>
+            <strong>Codec:</strong> H.264 via WebRTC
+        </div>
+    </div>
+    <script src="/static/client.js"></script>
+</body>
+</html>
