@@ -4,11 +4,10 @@ These tests verify that the shared protocol is used consistently and correctly.
 """
 
 import pytest
+from beavr_configs.core import HandSide
 from beavr_configs.core.enums import TopicPrefix
 from beavr_configs.sim.protocol import SimPorts, SimProtocolConfig
 from beavr_configs.teleop.topic_builder import TopicBuilder
-
-from beavr_network.schemas.fbs.teleop.HandSide import HandSide
 
 
 class TestTopicNaming:

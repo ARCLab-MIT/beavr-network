@@ -82,10 +82,11 @@ class InputFrameBuilder:
 
         input_frame_t = InputFrameT()
         input_frame_t.handSide = hand_side
-        # Ensure we send float32 to match FlatBuffers schema [float]
+        # Ensure we send float32 to match FlatBuffers schema [float] and flatten to 1D
         # Failing to do this when input is float64 results in garbage values on deserialization
-        input_frame_t.coordinateFrame = coordinate_frame.astype(np.float32)
-        input_frame_t.keypoints = keypoints.astype(np.float32)
+        # FlatBuffers CreateNumpyVector requires 1D arrays
+        input_frame_t.coordinateFrame = coordinate_frame.astype(np.float32).ravel()
+        input_frame_t.keypoints = keypoints.astype(np.float32).ravel()
         input_frame_t.isRelative = is_relative
         input_frame_t.command = command
 

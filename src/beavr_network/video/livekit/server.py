@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from beavr_configs.network.defaults import DEFAULT_PROFILE
+from beavr_configs.cameras import DEFAULT_PROFILE
 from livekit import api, rtc
 from numpy.typing import NDArray
 
