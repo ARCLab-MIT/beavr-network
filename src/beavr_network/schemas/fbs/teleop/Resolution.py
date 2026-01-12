@@ -2,7 +2,6 @@
 
 # namespace: teleop
 
-
-class Resolution:
+class Resolution(object):
     Low = 0
     High = 1

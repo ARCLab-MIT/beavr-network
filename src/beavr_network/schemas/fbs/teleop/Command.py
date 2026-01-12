@@ -2,8 +2,7 @@
 
 # namespace: teleop
 
-
-class Command:
+class Command(object):
     resume = 0
     pause = 1
     reset = 2

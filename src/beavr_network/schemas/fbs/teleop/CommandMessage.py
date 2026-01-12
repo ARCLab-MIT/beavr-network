@@ -4,12 +4,10 @@
 
 import flatbuffers
 from flatbuffers.compat import import_numpy
-
 np = import_numpy()
 
-
-class CommandMessage:
-    __slots__ = ["_tab"]
+class CommandMessage(object):
+    __slots__ = ['_tab']
 
     @classmethod
     def GetRootAs(cls, buf, offset=0):
@@ -22,7 +20,6 @@ class CommandMessage:
     def GetRootAsCommandMessage(cls, buf, offset=0):
         """This method is deprecated. Please switch to GetRootAs."""
         return cls.GetRootAs(buf, offset)
-
     # CommandMessage
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
@@ -34,32 +31,18 @@ class CommandMessage:
             return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
-
-def CommandMessageStart(builder):
-    builder.StartObject(1)
-
-
+def CommandMessageStart(builder): builder.StartObject(1)
 def Start(builder):
     return CommandMessageStart(builder)
-
-
-def CommandMessageAddCommand(builder, command):
-    builder.PrependUint8Slot(0, command, 0)
-
-
+def CommandMessageAddCommand(builder, command): builder.PrependUint8Slot(0, command, 0)
 def AddCommand(builder, command):
     return CommandMessageAddCommand(builder, command)
-
-
-def CommandMessageEnd(builder):
-    return builder.EndObject()
-
-
+def CommandMessageEnd(builder): return builder.EndObject()
 def End(builder):
     return CommandMessageEnd(builder)
 
+class CommandMessageT(object):
 
-class CommandMessageT:
     # CommandMessageT
     def __init__(self):
         self.command = 0  # type: int

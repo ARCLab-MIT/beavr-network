@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Callable
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 import zmq
 
+from .utils import get_global_context
+
 if TYPE_CHECKING:
     pass
-
-from .utils import get_global_context
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,9 @@ socket creation is cheap.
 __all__ = [
     "HandshakeServer",
     "HandshakeClient",
+    "HandshakeCoordinator",
+    "setup_handshake_server",
+    "cleanup_handshake",
 ]
 
 _DEFAULT_PING = b"PING"
@@ -235,13 +239,16 @@ class HandshakeCoordinator:
                 del self._subscribers[subscriber_id]
                 logger.info(f"Unregistered subscriber '{subscriber_id}'")
 
-    def start_server(self, subscriber_id: str, bind_host: str, port: int) -> None:
+    def start_server(
+        self, subscriber_id: str, bind_host: str, port: int, on_command: Callable[[bytes], None] | None = None
+    ) -> None:
         """Start a handshake server for a subscriber.
 
         Args:
             subscriber_id: Unique identifier for this subscriber
             bind_host: Host to bind the server to (usually "*" for all interfaces)
             port: Port to bind the server to
+            on_command: Optional callback function triggered when a handshake is received
         """
         if subscriber_id in self._servers:
             logger.warning(f"Server for '{subscriber_id}' already running")
@@ -254,7 +261,7 @@ class HandshakeCoordinator:
         # Let any thread creation errors bubble up immediately
         server_thread = threading.Thread(
             target=self._run_server,
-            args=(subscriber_id, bind_host, port),
+            args=(subscriber_id, bind_host, port, on_command),
             daemon=True,
             name=f"HandshakeServer-{subscriber_id}",
         )
@@ -279,20 +286,23 @@ class HandshakeCoordinator:
                 if subscriber_id in self._server_threads:
                     self._server_threads[subscriber_id].join(timeout=0.5)
                     if self._server_threads[subscriber_id].is_alive():
-                        logger.warning(f"Server thread for '{subscriber_id}' did not stop gracefully")
+                        logger.warning(f"Server for '{subscriber_id}' thread did not stop gracefully")
                     del self._server_threads[subscriber_id]
 
                 logger.info(f"Stopped handshake server for '{subscriber_id}'")
             except Exception as e:
                 logger.error(f"Error stopping server for '{subscriber_id}': {e}")
 
-    def _run_server(self, subscriber_id: str, bind_host: str, port: int) -> None:
+    def _run_server(
+        self, subscriber_id: str, bind_host: str, port: int, on_command: Callable[[bytes], None] | None = None
+    ) -> None:
         """Run the handshake server loop with socket creation in worker thread.
 
         Args:
             subscriber_id: Unique identifier for this subscriber
             bind_host: Host to bind the server to
             port: Port to bind the server to
+            on_command: Optional callback function triggered when a handshake is received
         """
         # Create socket in the worker thread - fail fast on initialization errors
         server_socket: zmq.Socket = self._context.socket(zmq.REP)
@@ -312,7 +322,14 @@ class HandshakeCoordinator:
 
                     if server_socket in events:
                         # Receive handshake request
-                        server_socket.recv(zmq.NOBLOCK)
+                        msg = server_socket.recv(zmq.NOBLOCK)
+
+                        # Trigger callback if provided
+                        if on_command:
+                            try:
+                                on_command(msg)
+                            except Exception as e:
+                                logger.error(f"Error in handshake callback for '{subscriber_id}': {e}")
 
                         # Send acknowledgment
                         server_socket.send(b"ACK")
@@ -567,58 +584,33 @@ to reduce duplication across interface and operator classes.
 """
 
 
-def setup_interface_handshake(
-    context: zmq.Context, robot_name: str, handshake_port: int
+def setup_handshake_server(
+    context: zmq.Context,
+    server_id: str,
+    port: int,
+    bind_host: str = "*",
+    on_command: Callable[[bytes], None] | None = None,
 ) -> tuple[HandshakeCoordinator, str]:
-    """Set up handshake coordination for a robot interface.
+    """Set up a generic handshake server using the coordinator.
 
     Args:
         context: The ZMQ context
-        robot_name: Name of the robot (e.g., 'xarm7_right')
-        handshake_port: Allocated handshake port for this interface
+        server_id: Unique identifier for the server (e.g., 'robot_name_handshake')
+        port: Port to bind to
+        bind_host: Host to bind to (default: "*")
+        on_command: Optional callback function triggered when a handshake is received
 
     Returns:
         Tuple of (HandshakeCoordinator instance, server_id string)
     """
     coordinator = HandshakeCoordinator.get_instance(context)
-    server_id = f"{robot_name}_handshake"
-
     coordinator.start_server(
         subscriber_id=server_id,
-        bind_host="*",
-        port=handshake_port,
+        bind_host=bind_host,
+        port=port,
+        on_command=on_command,
     )
-    logger.info(f"Handshake server started for {robot_name} on port {handshake_port}")
-
-    return coordinator, server_id
-
-
-def setup_operator_handshake(
-    context: zmq.Context, operator_name: str, handshake_port: int
-) -> tuple[HandshakeCoordinator, str]:
-    """Set up handshake coordination for an operator.
-
-    Args:
-        context: The ZMQ context
-        operator_name: Name of the operator (e.g., 'xarm7_right_operator')
-        handshake_port: Allocated handshake port for this operator
-
-    Returns:
-        Tuple of (HandshakeCoordinator instance, server_id string)
-    """
-    coordinator = HandshakeCoordinator.get_instance(context)
-    server_id = f"{operator_name}_handshake"
-
-    try:
-        coordinator.start_server(
-            subscriber_id=server_id,
-            bind_host="*",
-            port=handshake_port,
-        )
-        logger.info(f"Handshake server started for {operator_name} on port {handshake_port}")
-    except Exception as e:
-        logger.warning(f"Failed to start handshake server for {operator_name}: {e}")
-
+    logger.info(f"Handshake server '{server_id}' started on port {port}")
     return coordinator, server_id
 
 

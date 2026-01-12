@@ -2,8 +2,7 @@
 
 # namespace: teleop
 
-
-class HandSide:
+class HandSide(object):
     right = 0
     left = 1
     bimanual = 2

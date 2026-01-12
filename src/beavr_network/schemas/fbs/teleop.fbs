@@ -80,5 +80,6 @@ enum ControlMode:ubyte {
 
 enum RobotType:ubyte {
   arm = 0,
-  hand = 1
+  hand = 1,
+  gripper = 2
 }

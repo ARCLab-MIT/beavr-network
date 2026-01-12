@@ -4,12 +4,10 @@
 
 import flatbuffers
 from flatbuffers.compat import import_numpy
-
 np = import_numpy()
 
-
-class InputFrame:
-    __slots__ = ["_tab"]
+class InputFrame(object):
+    __slots__ = ['_tab']
 
     @classmethod
     def GetRootAs(cls, buf, offset=0):
@@ -22,7 +20,6 @@ class InputFrame:
     def GetRootAsInputFrame(cls, buf, offset=0):
         """This method is deprecated. Please switch to GetRootAs."""
         return cls.GetRootAs(buf, offset)
-
     # InputFrame
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
@@ -32,10 +29,7 @@ class InputFrame:
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
             a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Float32Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4),
-            )
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
         return 0
 
     # InputFrame
@@ -83,10 +77,7 @@ class InputFrame:
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Float32Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4),
-            )
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
         return 0
 
     # InputFrame
@@ -108,86 +99,40 @@ class InputFrame:
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         return o == 0
 
-
-def InputFrameStart(builder):
-    builder.StartObject(5)
-
-
+def InputFrameStart(builder): builder.StartObject(5)
 def Start(builder):
     return InputFrameStart(builder)
-
-
-def InputFrameAddKeypoints(builder, keypoints):
-    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(keypoints), 0)
-
-
+def InputFrameAddKeypoints(builder, keypoints): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(keypoints), 0)
 def AddKeypoints(builder, keypoints):
     return InputFrameAddKeypoints(builder, keypoints)
-
-
-def InputFrameStartKeypointsVector(builder, numElems):
-    return builder.StartVector(4, numElems, 4)
-
-
+def InputFrameStartKeypointsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartKeypointsVector(builder, numElems):
     return InputFrameStartKeypointsVector(builder, numElems)
-
-
-def InputFrameAddHandSide(builder, handSide):
-    builder.PrependUint8Slot(1, handSide, 0)
-
-
+def InputFrameAddHandSide(builder, handSide): builder.PrependUint8Slot(1, handSide, 0)
 def AddHandSide(builder, handSide):
     return InputFrameAddHandSide(builder, handSide)
-
-
-def InputFrameAddIsRelative(builder, isRelative):
-    builder.PrependUint8Slot(2, isRelative, 0)
-
-
+def InputFrameAddIsRelative(builder, isRelative): builder.PrependUint8Slot(2, isRelative, 0)
 def AddIsRelative(builder, isRelative):
     return InputFrameAddIsRelative(builder, isRelative)
-
-
-def InputFrameAddCommand(builder, command):
-    builder.PrependUint8Slot(3, command, 0)
-
-
+def InputFrameAddCommand(builder, command): builder.PrependUint8Slot(3, command, 0)
 def AddCommand(builder, command):
     return InputFrameAddCommand(builder, command)
-
-
-def InputFrameAddCoordinateFrame(builder, coordinateFrame):
-    builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(coordinateFrame), 0)
-
-
+def InputFrameAddCoordinateFrame(builder, coordinateFrame): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(coordinateFrame), 0)
 def AddCoordinateFrame(builder, coordinateFrame):
     return InputFrameAddCoordinateFrame(builder, coordinateFrame)
-
-
-def InputFrameStartCoordinateFrameVector(builder, numElems):
-    return builder.StartVector(4, numElems, 4)
-
-
+def InputFrameStartCoordinateFrameVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartCoordinateFrameVector(builder, numElems):
     return InputFrameStartCoordinateFrameVector(builder, numElems)
-
-
-def InputFrameEnd(builder):
-    return builder.EndObject()
-
-
+def InputFrameEnd(builder): return builder.EndObject()
 def End(builder):
     return InputFrameEnd(builder)
-
-
 try:
-    pass
+    from typing import List
 except:
     pass
 
+class InputFrameT(object):
 
-class InputFrameT:
     # InputFrameT
     def __init__(self):
         self.keypoints = None  # type: List[float]

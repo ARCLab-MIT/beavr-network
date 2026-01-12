@@ -4,12 +4,10 @@
 
 import flatbuffers
 from flatbuffers.compat import import_numpy
-
 np = import_numpy()
 
-
-class CartesianState:
-    __slots__ = ["_tab"]
+class CartesianState(object):
+    __slots__ = ['_tab']
 
     @classmethod
     def GetRootAs(cls, buf, offset=0):
@@ -22,7 +20,6 @@ class CartesianState:
     def GetRootAsCartesianState(cls, buf, offset=0):
         """This method is deprecated. Please switch to GetRootAs."""
         return cls.GetRootAs(buf, offset)
-
     # CartesianState
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
@@ -39,10 +36,7 @@ class CartesianState:
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Float32Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4),
-            )
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
         return 0
 
     # CartesianState
@@ -69,10 +63,7 @@ class CartesianState:
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Float32Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4),
-            )
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
         return 0
 
     # CartesianState
@@ -99,10 +90,7 @@ class CartesianState:
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Float32Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4),
-            )
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
         return 0
 
     # CartesianState
@@ -138,102 +126,46 @@ class CartesianState:
             return self._tab.Get(flatbuffers.number_types.Float64Flags, o + self._tab.Pos)
         return 0.0
 
-
-def CartesianStateStart(builder):
-    builder.StartObject(6)
-
-
+def CartesianStateStart(builder): builder.StartObject(6)
 def Start(builder):
     return CartesianStateStart(builder)
-
-
-def CartesianStateAddHandSide(builder, handSide):
-    builder.PrependUint8Slot(0, handSide, 0)
-
-
+def CartesianStateAddHandSide(builder, handSide): builder.PrependUint8Slot(0, handSide, 0)
 def AddHandSide(builder, handSide):
     return CartesianStateAddHandSide(builder, handSide)
-
-
-def CartesianStateAddPositionMeters(builder, positionMeters):
-    builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(positionMeters), 0)
-
-
+def CartesianStateAddPositionMeters(builder, positionMeters): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(positionMeters), 0)
 def AddPositionMeters(builder, positionMeters):
     return CartesianStateAddPositionMeters(builder, positionMeters)
-
-
-def CartesianStateStartPositionMetersVector(builder, numElems):
-    return builder.StartVector(4, numElems, 4)
-
-
+def CartesianStateStartPositionMetersVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartPositionMetersVector(builder, numElems):
     return CartesianStateStartPositionMetersVector(builder, numElems)
-
-
-def CartesianStateAddOrientationQuat(builder, orientationQuat):
-    builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(orientationQuat), 0)
-
-
+def CartesianStateAddOrientationQuat(builder, orientationQuat): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(orientationQuat), 0)
 def AddOrientationQuat(builder, orientationQuat):
     return CartesianStateAddOrientationQuat(builder, orientationQuat)
-
-
-def CartesianStateStartOrientationQuatVector(builder, numElems):
-    return builder.StartVector(4, numElems, 4)
-
-
+def CartesianStateStartOrientationQuatVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartOrientationQuatVector(builder, numElems):
     return CartesianStateStartOrientationQuatVector(builder, numElems)
-
-
-def CartesianStateAddHomoMatrix(builder, homoMatrix):
-    builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(homoMatrix), 0)
-
-
+def CartesianStateAddHomoMatrix(builder, homoMatrix): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(homoMatrix), 0)
 def AddHomoMatrix(builder, homoMatrix):
     return CartesianStateAddHomoMatrix(builder, homoMatrix)
-
-
-def CartesianStateStartHomoMatrixVector(builder, numElems):
-    return builder.StartVector(4, numElems, 4)
-
-
+def CartesianStateStartHomoMatrixVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartHomoMatrixVector(builder, numElems):
     return CartesianStateStartHomoMatrixVector(builder, numElems)
-
-
-def CartesianStateAddCommand(builder, command):
-    builder.PrependUint8Slot(4, command, 0)
-
-
+def CartesianStateAddCommand(builder, command): builder.PrependUint8Slot(4, command, 0)
 def AddCommand(builder, command):
     return CartesianStateAddCommand(builder, command)
-
-
-def CartesianStateAddTimestamp(builder, timestamp):
-    builder.PrependFloat64Slot(5, timestamp, 0.0)
-
-
+def CartesianStateAddTimestamp(builder, timestamp): builder.PrependFloat64Slot(5, timestamp, 0.0)
 def AddTimestamp(builder, timestamp):
     return CartesianStateAddTimestamp(builder, timestamp)
-
-
-def CartesianStateEnd(builder):
-    return builder.EndObject()
-
-
+def CartesianStateEnd(builder): return builder.EndObject()
 def End(builder):
     return CartesianStateEnd(builder)
-
-
 try:
-    pass
+    from typing import List
 except:
     pass
 
+class CartesianStateT(object):
 
-class CartesianStateT:
     # CartesianStateT
     def __init__(self):
         self.handSide = 0  # type: int

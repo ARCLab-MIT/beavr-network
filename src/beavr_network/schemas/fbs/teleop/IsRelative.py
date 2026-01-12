@@ -2,7 +2,6 @@
 
 # namespace: teleop
 
-
-class IsRelative:
+class IsRelative(object):
     relative = 0
     absolute = 1

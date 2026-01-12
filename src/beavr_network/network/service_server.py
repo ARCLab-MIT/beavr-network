@@ -9,9 +9,23 @@ import logging
 import threading
 from abc import ABC, abstractmethod
 
+import numpy as np
 import zmq
 
 logger = logging.getLogger(__name__)
+
+
+class NumpyJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles NumPy types."""
+
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
 
 
 class ZMQServiceServer(ABC):
@@ -93,7 +107,7 @@ class ZMQServiceServer(ABC):
                 if isinstance(response, str):
                     self._socket.send_string(response)
                 else:
-                    self._socket.send_string(json.dumps(response))
+                    self._socket.send_string(json.dumps(response, cls=NumpyJSONEncoder))
 
             except zmq.Again:
                 # Timeout - check shutdown flag
