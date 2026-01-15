@@ -21,6 +21,7 @@ from beavr_network.schemas.fbs.teleop.HandSide import HandSide
 from beavr_network.schemas.fbs.teleop.InputFrame import InputFrameT
 from beavr_network.schemas.fbs.teleop.IsRelative import IsRelative
 from beavr_network.schemas.fbs.teleop.JointState import JointStateT
+from beavr_network.schemas.fbs.teleop.KeyboardInput import KeyboardInputT
 from beavr_network.schemas.fbs.teleop.Resolution import Resolution
 from beavr_network.schemas.fbs.teleop.VRInput import VRInputT
 
@@ -97,6 +98,44 @@ class InputFrameBuilder:
         return self._input_frame_builder.Output()
 
 
+class KeyboardInputBuilder:
+    """Utility class for building KeyboardInput FlatBuffer messages with a reusable builder."""
+
+    def __init__(self):
+        self._keyboard_input_builder = flatbuffers.Builder(1024)
+
+    def build_keyboard_input(
+        self,
+        hand_side: HandSide | int,
+        key_states: np.ndarray,
+        is_relative: IsRelative | int,
+        command: Command | int,
+    ) -> bytes:
+        """Build KeyboardInput FlatBuffer message.
+
+        Args:
+            hand_side: Hand side enum or int value
+            key_states: Array of key states encoded as [key_code, is_pressed, ...] pairs
+            is_relative: IsRelative enum or int value (typically absolute=1 for keyboard)
+            command: Command enum or int value (pause/resume state)
+
+        Returns:
+            Serialized FlatBuffer bytes
+        """
+        keyboard_input_t = KeyboardInputT()
+        keyboard_input_t.handSide = int(hand_side) if not isinstance(hand_side, int) else hand_side
+        # Ensure we send float32 to match FlatBuffers schema [float]
+        keyboard_input_t.keyStates = key_states.astype(np.float32).ravel()
+        keyboard_input_t.isRelative = int(is_relative) if not isinstance(is_relative, int) else is_relative
+        keyboard_input_t.command = int(command) if not isinstance(command, int) else command
+
+        self._keyboard_input_builder.Clear()
+        keyboard_input = keyboard_input_t.Pack(self._keyboard_input_builder)
+        self._keyboard_input_builder.Finish(keyboard_input)
+
+        return self._keyboard_input_builder.Output()
+
+
 class CartesianStateBuilder:
     """Utility class for building CartesianState FlatBuffer messages with a reusable builder."""
 
@@ -120,8 +159,8 @@ class CartesianStateBuilder:
 
         cartesian_state_t = CartesianStateT()
         cartesian_state_t.handSide = hand_side
-        cartesian_state_t.positionMeters = position
-        cartesian_state_t.orientationQuat = orientation_quat
+        cartesian_state_t.positionMeters = position.astype(np.float32).ravel()
+        cartesian_state_t.orientationQuat = orientation_quat.astype(np.float32).ravel()
         cartesian_state_t.timestamp = time.time() * 1000  # Add millisecond timestamp for latency tracking
 
         self._cartesian_state_builder.Clear()
@@ -144,7 +183,7 @@ class CartesianStateBuilder:
 
         cartesian_state_t = CartesianStateT()
         cartesian_state_t.handSide = hand_side
-        cartesian_state_t.homoMatrix = homo_matrix
+        cartesian_state_t.homoMatrix = homo_matrix.astype(np.float32).ravel()
         cartesian_state_t.timestamp = time.time() * 1000  # Add millisecond timestamp for latency tracking
 
         self._cartesian_state_builder.Clear()
@@ -160,13 +199,19 @@ class JointStateBuilder:
     def __init__(self):
         self._joint_builder = flatbuffers.Builder(512)
 
-    def build_joint_state(self, hand_side: HandSide, joint_positions_rad: np.ndarray) -> bytes:
+    def build_joint_state(
+        self,
+        hand_side: HandSide,
+        joint_positions_rad: np.ndarray | None = None,
+        joint_velocities_rad: np.ndarray | None = None,
+    ) -> bytes:
         """
-        Build JointState FlatBuffer message with joint positions.
+        Build JointState FlatBuffer message with joint positions and/or velocities.
 
         Args:
             hand_side: Hand side enum
-            joint_positions_rad: List of joint positions in radians
+            joint_positions_rad: Optional list of joint positions in radians
+            joint_velocities_rad: Optional list of joint velocities in radians/sec
 
         Returns:
             Serialized FlatBuffer bytes
@@ -174,9 +219,14 @@ class JointStateBuilder:
 
         joint_state_t = JointStateT()
         joint_state_t.handSide = hand_side
+
         # Ensure we send float32 to match FlatBuffers schema [float]
         # Failing to do this when input is float64 results in garbage values on deserialization
-        joint_state_t.jointPositionsRad = joint_positions_rad.astype(np.float32)
+        if joint_positions_rad is not None:
+            joint_state_t.jointPositionsRad = joint_positions_rad.astype(np.float32)
+
+        if joint_velocities_rad is not None:
+            joint_state_t.jointVelocitiesRad = joint_velocities_rad.astype(np.float32)
 
         self._joint_builder.Clear()
         joint_state = joint_state_t.Pack(self._joint_builder)

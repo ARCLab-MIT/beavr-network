@@ -40,6 +40,13 @@ table VRInput {
   resolution: Resolution;
 }
 
+table KeyboardInput {
+  key_states: [float];  // Encoded as [key_code, is_pressed, ...] pairs
+  hand_side: HandSide;
+  is_relative: IsRelative;
+  command: Command;
+}
+
 // Stores cartesian poses and keypoint mappings.
 // Helpful for arm and hand robots and should be all you need.
 table InputFrame {
@@ -69,6 +76,7 @@ table CartesianState {
 table JointState {
   hand_side: HandSide;
   joint_positions_rad: [float];
+  joint_velocities_rad: [float];
   command: Command;
   timestamp: double = 0;  // Timestamp for latency tracking
 }
@@ -81,5 +89,6 @@ enum ControlMode:ubyte {
 enum RobotType:ubyte {
   arm = 0,
   hand = 1,
-  gripper = 2
+  gripper = 2,
+  mobile = 3
 }

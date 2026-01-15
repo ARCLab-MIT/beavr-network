@@ -6,3 +6,4 @@ class RobotType(object):
     arm = 0
     hand = 1
     gripper = 2
+    mobile = 3

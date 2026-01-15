@@ -59,20 +59,47 @@ class JointState(object):
         return o == 0
 
     # JointState
-    def Command(self):
+    def JointVelocitiesRad(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            a = self._tab.Vector(o)
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
+        return 0
+
+    # JointState
+    def JointVelocitiesRadAsNumpy(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Float32Flags, o)
+        return 0
+
+    # JointState
+    def JointVelocitiesRadLength(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.VectorLen(o)
+        return 0
+
+    # JointState
+    def JointVelocitiesRadIsNone(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        return o == 0
+
+    # JointState
+    def Command(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
     # JointState
     def Timestamp(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Float64Flags, o + self._tab.Pos)
         return 0.0
 
-def JointStateStart(builder): builder.StartObject(4)
+def JointStateStart(builder): builder.StartObject(5)
 def Start(builder):
     return JointStateStart(builder)
 def JointStateAddHandSide(builder, handSide): builder.PrependUint8Slot(0, handSide, 0)
@@ -84,10 +111,16 @@ def AddJointPositionsRad(builder, jointPositionsRad):
 def JointStateStartJointPositionsRadVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartJointPositionsRadVector(builder, numElems):
     return JointStateStartJointPositionsRadVector(builder, numElems)
-def JointStateAddCommand(builder, command): builder.PrependUint8Slot(2, command, 0)
+def JointStateAddJointVelocitiesRad(builder, jointVelocitiesRad): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(jointVelocitiesRad), 0)
+def AddJointVelocitiesRad(builder, jointVelocitiesRad):
+    return JointStateAddJointVelocitiesRad(builder, jointVelocitiesRad)
+def JointStateStartJointVelocitiesRadVector(builder, numElems): return builder.StartVector(4, numElems, 4)
+def StartJointVelocitiesRadVector(builder, numElems):
+    return JointStateStartJointVelocitiesRadVector(builder, numElems)
+def JointStateAddCommand(builder, command): builder.PrependUint8Slot(3, command, 0)
 def AddCommand(builder, command):
     return JointStateAddCommand(builder, command)
-def JointStateAddTimestamp(builder, timestamp): builder.PrependFloat64Slot(3, timestamp, 0.0)
+def JointStateAddTimestamp(builder, timestamp): builder.PrependFloat64Slot(4, timestamp, 0.0)
 def AddTimestamp(builder, timestamp):
     return JointStateAddTimestamp(builder, timestamp)
 def JointStateEnd(builder): return builder.EndObject()
@@ -104,6 +137,7 @@ class JointStateT(object):
     def __init__(self):
         self.handSide = 0  # type: int
         self.jointPositionsRad = None  # type: List[float]
+        self.jointVelocitiesRad = None  # type: List[float]
         self.command = 0  # type: int
         self.timestamp = 0.0  # type: float
 
@@ -131,6 +165,13 @@ class JointStateT(object):
                     self.jointPositionsRad.append(jointState.JointPositionsRad(i))
             else:
                 self.jointPositionsRad = jointState.JointPositionsRadAsNumpy()
+        if not jointState.JointVelocitiesRadIsNone():
+            if np is None:
+                self.jointVelocitiesRad = []
+                for i in range(jointState.JointVelocitiesRadLength()):
+                    self.jointVelocitiesRad.append(jointState.JointVelocitiesRad(i))
+            else:
+                self.jointVelocitiesRad = jointState.JointVelocitiesRadAsNumpy()
         self.command = jointState.Command()
         self.timestamp = jointState.Timestamp()
 
@@ -144,10 +185,20 @@ class JointStateT(object):
                 for i in reversed(range(len(self.jointPositionsRad))):
                     builder.PrependFloat32(self.jointPositionsRad[i])
                 jointPositionsRad = builder.EndVector()
+        if self.jointVelocitiesRad is not None:
+            if np is not None and type(self.jointVelocitiesRad) is np.ndarray:
+                jointVelocitiesRad = builder.CreateNumpyVector(self.jointVelocitiesRad)
+            else:
+                JointStateStartJointVelocitiesRadVector(builder, len(self.jointVelocitiesRad))
+                for i in reversed(range(len(self.jointVelocitiesRad))):
+                    builder.PrependFloat32(self.jointVelocitiesRad[i])
+                jointVelocitiesRad = builder.EndVector()
         JointStateStart(builder)
         JointStateAddHandSide(builder, self.handSide)
         if self.jointPositionsRad is not None:
             JointStateAddJointPositionsRad(builder, jointPositionsRad)
+        if self.jointVelocitiesRad is not None:
+            JointStateAddJointVelocitiesRad(builder, jointVelocitiesRad)
         JointStateAddCommand(builder, self.command)
         JointStateAddTimestamp(builder, self.timestamp)
         jointState = JointStateEnd(builder)

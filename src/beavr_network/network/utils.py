@@ -68,12 +68,13 @@ def cleanup_zmq_resources() -> None:
 def create_push_socket(host: str, port: int) -> zmq.Socket:
     """Create a PUSH socket with error handling."""
     socket = get_global_context().socket(zmq.PUSH)
+    socket.setsockopt(zmq.LINGER, 0)  # Don't wait on close
     addr = f"tcp://{host}:{port}"
     socket.bind(addr)
     return socket
 
 
-def create_pull_socket(host: str, port: int) -> zmq.Socket:
+def create_pull_socket(host: str, port: int, connect: bool = False) -> zmq.Socket:
     """Create a PULL socket with error handling and connection verification."""
     socket = get_global_context().socket(zmq.PULL)
     socket.setsockopt(zmq.CONFLATE, 1)
@@ -82,13 +83,17 @@ def create_pull_socket(host: str, port: int) -> zmq.Socket:
     socket.setsockopt(zmq.RCVHWM, 1)  # Only keep latest message
 
     addr = f"tcp://{host}:{port}"
-    # Try to bind to the address
-    socket.bind(addr)
 
-    # Test if the socket is actually bound
-    bound_addrs = socket.getsockopt_string(zmq.LAST_ENDPOINT)
-    if not bound_addrs:
-        raise zmq.ZMQError("Socket binding verification failed")
+    if connect:
+        socket.connect(addr)
+    else:
+        # Try to bind to the address
+        socket.bind(addr)
+
+        # Test if the socket is actually bound
+        bound_addrs = socket.getsockopt_string(zmq.LAST_ENDPOINT)
+        if not bound_addrs:
+            raise zmq.ZMQError("Socket binding verification failed")
 
     return socket
 
@@ -97,6 +102,7 @@ def create_response_socket(host: str, port: int) -> zmq.Socket:
     """Create a REP socket with error handling."""
 
     socket = get_global_context().socket(zmq.REP)
+    socket.setsockopt(zmq.LINGER, 0)  # Don't wait on close
     addr = f"tcp://{host}:{port}"
     socket.bind(addr)
     return socket
