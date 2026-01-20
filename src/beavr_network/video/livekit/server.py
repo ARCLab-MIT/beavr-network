@@ -39,7 +39,10 @@ class LiveKitConfig:
     """Configuration for LiveKitStreamServer.
 
     Attributes:
-        livekit_url: WebSocket URL of LiveKit server.
+        livekit_url: WebSocket URL of LiveKit server (used by publisher).
+        external_livekit_url: Optional WebSocket URL advertised to clients via /info.
+            If not set and livekit_url uses localhost/0.0.0.0, /info will auto-advertise
+            a best-effort LAN-reachable URL (e.g. ws://<local_ipv4>:7880).
         api_key: API key for token generation.
         api_secret: API secret for token generation.
         room_name: Name of the room to publish to.
@@ -53,6 +56,7 @@ class LiveKitConfig:
     """
 
     livekit_url: str = "ws://localhost:7880"
+    external_livekit_url: str | None = None
     api_key: str = "devkey"
     api_secret: str = "secret"
     room_name: str = "sim-stream"
@@ -148,9 +152,34 @@ class LiveKitStreamServer:
 
         # Info endpoint
         async def handle_info(request: web.Request) -> web.Response:
+            # If the publisher connects to a local LiveKit (e.g. ws://localhost:7880),
+            # remote clients must NOT be told "localhost". Advertise a LAN-reachable URL.
+            from urllib.parse import urlparse
+
+            from beavr_configs.network import get_local_ipv4
+
+            client_livekit_url = self._config.livekit_url
+            if self._config.external_livekit_url:
+                client_livekit_url = self._config.external_livekit_url
+            else:
+                try:
+                    parsed = urlparse(self._config.livekit_url)
+                    scheme = parsed.scheme or "ws"
+                    host = parsed.hostname
+                    port = parsed.port
+                    if host in ("localhost", "127.0.0.1", "0.0.0.0"):
+                        ip = get_local_ipv4()
+                        if port is not None:
+                            client_livekit_url = f"{scheme}://{ip}:{port}"
+                        else:
+                            client_livekit_url = f"{scheme}://{ip}"
+                except Exception:
+                    # Fall back to configured URL if parsing fails.
+                    client_livekit_url = self._config.livekit_url
+
             return web.json_response(
                 {
-                    "livekit_url": self._config.livekit_url,
+                    "livekit_url": client_livekit_url,
                     "room": self._config.room_name,
                     "resolution": [self._config.width, self._config.height],
                     "fps": self._config.fps,
