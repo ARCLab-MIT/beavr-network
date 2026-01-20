@@ -1,9 +1,8 @@
 services:
   livekit:
     image: livekit/livekit-server
-    command: --dev --bind 0.0.0.0
-    ports:
-      - "7880:7880" # WebSocket signaling
-      - "7881:7881/udp" # WebRTC media (UDP)
-      - "7881:7881/tcp" # WebRTC media (TCP fallback)
+    command: --dev --bind 0.0.0.0 --node-ip ${LIVEKIT_NODE_IP:-0.0.0.0}
+    network_mode: host
+    environment:
+      - LIVEKIT_NODE_IP=${LIVEKIT_NODE_IP:-}
     restart: unless-stopped
