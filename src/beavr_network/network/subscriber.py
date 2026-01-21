@@ -247,12 +247,26 @@ class ZMQSubscriber(BaseSubscriber[T]):
         self._last_data = data
 
     def receive(self) -> T | None:
-        """Get the latest data.
+        """Get the latest data (non-consuming peek).
 
         Returns:
             The latest data if available, None otherwise
         """
         return self._last_data
+
+    def consume(self) -> T | None:
+        """Get and clear the latest data (consuming read).
+
+        Use this for one-shot commands (like reset) that should only
+        be processed once. After calling consume(), subsequent calls
+        will return None until new data arrives.
+
+        Returns:
+            The latest data if available, None otherwise
+        """
+        data = self._last_data
+        self._last_data = None
+        return data
 
 
 class ZMQButtonFeedbackSubscriber(BaseSubscriber[T], Generic[T]):
@@ -288,12 +302,22 @@ class ZMQButtonFeedbackSubscriber(BaseSubscriber[T], Generic[T]):
         self._last_data = data
 
     def receive(self) -> T | None:
-        """Get the latest button feedback data.
+        """Get the latest button feedback data (non-consuming peek).
 
         Returns:
             The latest button feedback data if available, None otherwise
         """
         return self._last_data
+
+    def consume(self) -> T | None:
+        """Get and clear the latest button feedback data (consuming read).
+
+        Returns:
+            The latest button feedback data if available, None otherwise
+        """
+        data = self._last_data
+        self._last_data = None
+        return data
 
 
 class MultiplexedZMQSubscriber(ZMQSubscriber[T]):
