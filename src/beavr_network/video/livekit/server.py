@@ -324,6 +324,27 @@ class LiveKitStreamServer:
                 pass
             self._stream_task = None
 
+        # Send black frame before disconnecting to signal "stream ended"
+        if self._video_source is not None:
+            try:
+                import numpy as np
+
+                black_frame = np.zeros(
+                    (self._config.height, self._config.width, 3), dtype=np.uint8
+                )
+                lk_frame = rtc.VideoFrame(
+                    self._config.width,
+                    self._config.height,
+                    rtc.VideoBufferType.RGB24,
+                    black_frame.tobytes(),
+                )
+                self._video_source.capture_frame(lk_frame)
+                # Small delay to ensure frame is sent
+                await asyncio.sleep(0.1)
+                logger.debug("Sent black frame before disconnect")
+            except Exception as e:
+                logger.debug(f"Could not send black frame: {e}")
+
         if self._room:
             await self._room.disconnect()
             self._room = None
