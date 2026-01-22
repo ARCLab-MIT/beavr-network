@@ -272,6 +272,8 @@ class LiveKitStreamServer:
         logger.info(f"Starting stream loop (physics-driven at {self._config.fps} fps target)")
 
         last_frame = None
+        frames_published = 0
+        no_frame_count = 0
 
         while not self._shutdown:
             try:
@@ -290,6 +292,17 @@ class LiveKitStreamServer:
                         )
                         self._video_source.capture_frame(lk_frame)
                         last_frame = frame
+                        frames_published += 1
+                        no_frame_count = 0
+                        
+                        # Log every 30 frames (once per second at 30fps)
+                        if frames_published % 30 == 0:
+                            logger.debug(f"Published {frames_published} frames to LiveKit")
+                else:
+                    no_frame_count += 1
+                    # Warn if we haven't gotten frames for a while
+                    if no_frame_count == 1000:  # ~1 second at 1ms sleep
+                        logger.warning(f"No frames received from camera after {no_frame_count} attempts")
 
                 # Small sleep to avoid busy-waiting (1ms = 1000 polls/sec max)
                 # Physics at 480Hz produces 60 frames/sec, so this is plenty fast
@@ -299,7 +312,7 @@ class LiveKitStreamServer:
                 logger.error(f"Error in stream loop: {e}")
                 await asyncio.sleep(0.1)
 
-        logger.info("Stream loop stopped")
+        logger.info(f"Stream loop stopped (published {frames_published} frames total)")
 
     async def start(self) -> None:
         """Start the server (connect, publish, and stream)."""
