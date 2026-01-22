@@ -5,4 +5,4 @@ services:
     network_mode: host
     environment:
       - LIVEKIT_NODE_IP=${LIVEKIT_NODE_IP:-}
-    restart: unless-stopped
+    restart: "no"  # Ephemeral: managed by desktop app, recreated on IP change
