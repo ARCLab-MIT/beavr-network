@@ -294,7 +294,7 @@ class LiveKitStreamServer:
                         last_frame = frame
                         frames_published += 1
                         no_frame_count = 0
-                        
+
                         # Log every 30 frames (once per second at 30fps)
                         if frames_published % 30 == 0:
                             logger.debug(f"Published {frames_published} frames to LiveKit")
@@ -342,9 +342,7 @@ class LiveKitStreamServer:
             try:
                 import numpy as np
 
-                black_frame = np.zeros(
-                    (self._config.height, self._config.width, 3), dtype=np.uint8
-                )
+                black_frame = np.zeros((self._config.height, self._config.width, 3), dtype=np.uint8)
                 lk_frame = rtc.VideoFrame(
                     self._config.width,
                     self._config.height,
