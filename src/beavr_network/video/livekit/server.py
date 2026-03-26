@@ -255,7 +255,7 @@ class LiveKitStreamServer:
         options = rtc.TrackPublishOptions(
             source=rtc.TrackSource.SOURCE_CAMERA,
             video_encoding=video_encoding,
-            simulcast=False,  # Disable simulcast to save CPU/Bandwidth for high-res
+            simulcast=True,  # Enable simulcast: client auto-picks best quality layer
         )
         await self._room.local_participant.publish_track(track, options)
         logger.info(
