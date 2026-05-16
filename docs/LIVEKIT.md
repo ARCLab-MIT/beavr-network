@@ -40,6 +40,22 @@ uv run python -m beavr_sim.main --enable_streaming
 Open your browser and navigate to:
 [http://localhost:8080](http://localhost:8080)
 
+If the active scene defines multiple cameras and `--stream_camera` is not set,
+`beavr-sim` starts one LiveKit track per scene camera on incrementing HTTP ports:
+`8080`, `8081`, and so on. The HTTP endpoints expose per-camera tokens and
+track metadata; the publisher uses one LiveKit room connection for all sim
+tracks. For example, `scene_hello_world` exposes its overhead camera at `8080`
+and its wrist-test camera at `8081`.
+
+To override the default camera list or ports:
+
+```bash
+uv run python -m beavr_sim.main \
+  --enable_streaming \
+  --stream_cameras='[overhead,wrist]' \
+  --stream_ports='[8080,8081]'
+```
+
 ---
 
 ## 🛠️ Developer Guide
@@ -65,13 +81,13 @@ To ensure no "async drift" or timing conflicts between the simulation physics an
 
 ### Architecture Overview
 
-1. **LiveKit Server (Docker)**: Acts as the SFU. It receives one high-quality stream from the simulation and distributes it to any number of connected web clients.
-2. **LiveKitStreamServer (Python)**:
+1. **LiveKit Server (Docker)**: Acts as the SFU. It receives one high-quality track per simulation camera and distributes each track to any number of connected web clients.
+2. **LiveKitStreamServer / LiveKitMultiStreamServer (Python)**:
    - Connects to the room using a JWT token.
-   - Creates a `VideoSource` and `LocalVideoTrack`.
-   - Disables **simulcast** to prioritize high-fidelity point-to-point delivery.
-   - Manages an internal `aiohttp` server to provide tokens and metadata to web clients.
-3. **Web Client (JS)**: Located in `clients/web/`, it uses the LiveKit JS SDK to automatically connect and attach the video track to an HTML5 video element.
+   - Creates a `VideoSource` and named `LocalVideoTrack` for each camera.
+   - Uses **simulcast** so clients can adapt to available bandwidth.
+   - Manages internal `aiohttp` servers to provide tokens and track metadata to web clients.
+3. **Web Client (JS)**: Located in `clients/web/`, it uses the LiveKit JS SDK to automatically connect and attach the requested video track to an HTML5 video element.
 
 ## 🛑 Troubleshooting
 

@@ -3,9 +3,11 @@
 Provides production-grade WebRTC streaming via LiveKit server.
 """
 
-from .server import LiveKitConfig, LiveKitStreamServer
+from .server import LiveKitCameraStream, LiveKitConfig, LiveKitMultiStreamServer, LiveKitStreamServer
 
 __all__ = [
+    "LiveKitCameraStream",
     "LiveKitConfig",
+    "LiveKitMultiStreamServer",
     "LiveKitStreamServer",
 ]

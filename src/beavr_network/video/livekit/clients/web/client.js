@@ -10,12 +10,14 @@ const { Room, RoomEvent, ConnectionState } = LivekitClient;
 const video = document.getElementById('video');
 let room = null;
 let livekitUrl = null;
+let targetTrackName = null;
 
 async function init() {
     try {
         const resp = await fetch('/info');
         const info = await resp.json();
         livekitUrl = info.livekit_url;
+        targetTrackName = info.track_name || null;
         await connect();
     } catch (err) {
         console.error('Failed to initialize stream', err);
@@ -31,10 +33,15 @@ async function connect() {
 
         room = new Room();
 
-        room.on(RoomEvent.TrackSubscribed, (track) => {
+        room.on(RoomEvent.TrackSubscribed, (track, publication) => {
             if (track.kind === 'video') {
+                const subscribedTrackName = publication?.trackName || publication?.name || track.name || null;
+                if (targetTrackName && subscribedTrackName !== targetTrackName) {
+                    console.log(`Skipping video track ${subscribedTrackName}; waiting for ${targetTrackName}`);
+                    return;
+                }
                 track.attach(video);
-                console.log('Stream attached');
+                console.log(`Stream attached${subscribedTrackName ? ` (${subscribedTrackName})` : ''}`);
             }
         });
 
