@@ -5,12 +5,42 @@
  * No UI controls, just the video feed.
  */
 
-const { Room, RoomEvent, ConnectionState } = LivekitClient;
+const { Room, RoomEvent } = LivekitClient;
 
 const video = document.getElementById('video');
 let room = null;
 let livekitUrl = null;
 let targetTrackName = null;
+
+function publicationName(publication) {
+    return publication?.trackName || publication?.name || publication?.track?.name || null;
+}
+
+function shouldUsePublication(publication) {
+    const name = publicationName(publication);
+    return !targetTrackName || name === targetTrackName;
+}
+
+function attachTrack(track, publication) {
+    if (track.kind !== 'video' || !shouldUsePublication(publication)) return;
+    video.replaceChildren();
+    track.attach(video);
+    console.log(`Stream attached (${publicationName(publication) || 'unnamed'})`);
+}
+
+function subscribeIfTarget(publication) {
+    if (!shouldUsePublication(publication)) {
+        const name = publicationName(publication);
+        console.log(`Skipping video track ${name}; waiting for ${targetTrackName}`);
+        return;
+    }
+
+    if (publication.track) {
+        attachTrack(publication.track, publication);
+    } else if (publication.setSubscribed) {
+        publication.setSubscribed(true);
+    }
+}
 
 async function init() {
     try {
@@ -34,15 +64,11 @@ async function connect() {
         room = new Room();
 
         room.on(RoomEvent.TrackSubscribed, (track, publication) => {
-            if (track.kind === 'video') {
-                const subscribedTrackName = publication?.trackName || publication?.name || track.name || null;
-                if (targetTrackName && subscribedTrackName !== targetTrackName) {
-                    console.log(`Skipping video track ${subscribedTrackName}; waiting for ${targetTrackName}`);
-                    return;
-                }
-                track.attach(video);
-                console.log(`Stream attached${subscribedTrackName ? ` (${subscribedTrackName})` : ''}`);
-            }
+            attachTrack(track, publication);
+        });
+
+        room.on(RoomEvent.TrackPublished, (publication) => {
+            if (publication.kind === 'video') subscribeIfTarget(publication);
         });
 
         room.on(RoomEvent.Disconnected, () => {
@@ -52,8 +78,14 @@ async function connect() {
             setTimeout(init, 5000);
         });
 
-        await room.connect(livekitUrl, token);
+        await room.connect(livekitUrl, token, { autoSubscribe: false });
         console.log('Connected to simulation room');
+
+        room.remoteParticipants.forEach((participant) => {
+            participant.trackPublications.forEach((publication) => {
+                if (publication.kind === 'video') subscribeIfTarget(publication);
+            });
+        });
 
     } catch (err) {
         console.error('Connection failed', err);

@@ -22,7 +22,6 @@ from beavr_network.schemas.fbs.teleop.InputFrame import InputFrameT
 from beavr_network.schemas.fbs.teleop.IsRelative import IsRelative
 from beavr_network.schemas.fbs.teleop.JointState import JointStateT
 from beavr_network.schemas.fbs.teleop.KeyboardInput import KeyboardInputT
-from beavr_network.schemas.fbs.teleop.Resolution import Resolution
 from beavr_network.schemas.fbs.teleop.VRInput import VRInputT
 
 
@@ -45,14 +44,21 @@ class VRInputMessageBuilder:
         self._vr_input_builder = flatbuffers.Builder(1024)
         self._command_builder = flatbuffers.Builder(256)
 
-    def build_vr_input(self, keypoints: np.ndarray, hand_side: HandSide, is_relative: IsRelative) -> bytes:
+    def build_vr_input(
+        self,
+        keypoints: np.ndarray,
+        hand_side: HandSide,
+        is_relative: IsRelative,
+        hand_orientation_quat: np.ndarray | None = None,
+    ) -> bytes:
         """Build a VRInput FlatBuffer message."""
         vr_input_t = VRInputT()
-        vr_input_t.keypoints = keypoints
+        vr_input_t.keypoints = keypoints.astype(np.float32).ravel()
         vr_input_t.handSide = hand_side
         vr_input_t.isRelative = is_relative
         vr_input_t.command = Command.resume  # Default
-        vr_input_t.resolution = Resolution.High  # Default
+        if hand_orientation_quat is not None:
+            vr_input_t.handOrientationQuat = hand_orientation_quat.astype(np.float32).ravel()
 
         self._vr_input_builder.Clear()
         vr_input = vr_input_t.Pack(self._vr_input_builder)

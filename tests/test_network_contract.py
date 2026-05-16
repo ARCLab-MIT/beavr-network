@@ -7,10 +7,12 @@ from beavr_network.schemas.fbs.teleop.HandSide import HandSide
 from beavr_network.schemas.fbs.teleop.InputFrame import InputFrame
 from beavr_network.schemas.fbs.teleop.IsRelative import IsRelative
 from beavr_network.schemas.fbs.teleop.JointState import JointState
+from beavr_network.schemas.fbs.teleop.VRInput import VRInput
 from beavr_network.schemas.message_builder import (
     CartesianStateBuilder,
     InputFrameBuilder,
     JointStateBuilder,
+    VRInputMessageBuilder,
 )
 
 
@@ -27,6 +29,11 @@ def joint_builder():
 @pytest.fixture
 def input_frame_builder():
     return InputFrameBuilder()
+
+
+@pytest.fixture
+def vr_input_builder():
+    return VRInputMessageBuilder()
 
 
 def test_cartesian_state_contract(cartesian_builder):
@@ -80,3 +87,24 @@ def test_input_frame_contract(input_frame_builder):
     assert np.allclose(frame.KeypointsAsNumpy(), keypoints)
     assert frame.IsRelative() == is_relative
     assert frame.Command() == command
+
+
+def test_vr_input_contract_includes_hand_orientation(vr_input_builder):
+    """Verify VRInput can round-trip streamed hand root orientation."""
+    keypoints = np.random.rand(26, 3).astype(np.float32)
+    hand_orientation_quat = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+
+    data = vr_input_builder.build_vr_input(
+        keypoints,
+        HandSide.right,
+        IsRelative.relative,
+        hand_orientation_quat=hand_orientation_quat,
+    )
+
+    vr_input = VRInput.GetRootAs(data, 0)
+
+    assert vr_input.HandSide() == HandSide.right
+    assert vr_input.IsRelative() == IsRelative.relative
+    assert vr_input.Command() == Command.resume
+    assert np.allclose(vr_input.KeypointsAsNumpy(), keypoints.ravel())
+    assert np.allclose(vr_input.HandOrientationQuatAsNumpy(), hand_orientation_quat)

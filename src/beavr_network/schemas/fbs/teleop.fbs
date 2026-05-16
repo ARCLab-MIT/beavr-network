@@ -27,17 +27,12 @@ enum IsRelative:ubyte {
   absolute = 1
 }
 
-enum Resolution:ubyte {
-  Low = 0,
-  High = 1
-}
-
 table VRInput {
   keypoints: [float]; // 26 keypoints * 3 coordinates each
   hand_side: HandSide;
   is_relative: IsRelative;
   command: Command;
-  resolution: Resolution;
+  hand_orientation_quat: [float]; // Unity order: [x, y, z, w]
 }
 
 table KeyboardInput {

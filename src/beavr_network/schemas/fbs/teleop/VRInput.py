@@ -73,11 +73,31 @@ class VRInput(object):
         return 0
 
     # VRInput
-    def Resolution(self):
+    def HandOrientationQuat(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
+            a = self._tab.Vector(o)
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
         return 0
+
+    # VRInput
+    def HandOrientationQuatAsNumpy(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        if o != 0:
+            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Float32Flags, o)
+        return 0
+
+    # VRInput
+    def HandOrientationQuatLength(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        if o != 0:
+            return self._tab.VectorLen(o)
+        return 0
+
+    # VRInput
+    def HandOrientationQuatIsNone(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        return o == 0
 
 def VRInputStart(builder): builder.StartObject(5)
 def Start(builder):
@@ -97,9 +117,12 @@ def AddIsRelative(builder, isRelative):
 def VRInputAddCommand(builder, command): builder.PrependUint8Slot(3, command, 0)
 def AddCommand(builder, command):
     return VRInputAddCommand(builder, command)
-def VRInputAddResolution(builder, resolution): builder.PrependUint8Slot(4, resolution, 0)
-def AddResolution(builder, resolution):
-    return VRInputAddResolution(builder, resolution)
+def VRInputAddHandOrientationQuat(builder, handOrientationQuat): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(handOrientationQuat), 0)
+def AddHandOrientationQuat(builder, handOrientationQuat):
+    return VRInputAddHandOrientationQuat(builder, handOrientationQuat)
+def VRInputStartHandOrientationQuatVector(builder, numElems): return builder.StartVector(4, numElems, 4)
+def StartHandOrientationQuatVector(builder, numElems):
+    return VRInputStartHandOrientationQuatVector(builder, numElems)
 def VRInputEnd(builder): return builder.EndObject()
 def End(builder):
     return VRInputEnd(builder)
@@ -116,7 +139,7 @@ class VRInputT(object):
         self.handSide = 0  # type: int
         self.isRelative = 0  # type: int
         self.command = 0  # type: int
-        self.resolution = 0  # type: int
+        self.handOrientationQuat = None  # type: List[float]
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -144,7 +167,13 @@ class VRInputT(object):
         self.handSide = vrinput.HandSide()
         self.isRelative = vrinput.IsRelative()
         self.command = vrinput.Command()
-        self.resolution = vrinput.Resolution()
+        if not vrinput.HandOrientationQuatIsNone():
+            if np is None:
+                self.handOrientationQuat = []
+                for i in range(vrinput.HandOrientationQuatLength()):
+                    self.handOrientationQuat.append(vrinput.HandOrientationQuat(i))
+            else:
+                self.handOrientationQuat = vrinput.HandOrientationQuatAsNumpy()
 
     # VRInputT
     def Pack(self, builder):
@@ -156,12 +185,21 @@ class VRInputT(object):
                 for i in reversed(range(len(self.keypoints))):
                     builder.PrependFloat32(self.keypoints[i])
                 keypoints = builder.EndVector()
+        if self.handOrientationQuat is not None:
+            if np is not None and type(self.handOrientationQuat) is np.ndarray:
+                handOrientationQuat = builder.CreateNumpyVector(self.handOrientationQuat)
+            else:
+                VRInputStartHandOrientationQuatVector(builder, len(self.handOrientationQuat))
+                for i in reversed(range(len(self.handOrientationQuat))):
+                    builder.PrependFloat32(self.handOrientationQuat[i])
+                handOrientationQuat = builder.EndVector()
         VRInputStart(builder)
         if self.keypoints is not None:
             VRInputAddKeypoints(builder, keypoints)
         VRInputAddHandSide(builder, self.handSide)
         VRInputAddIsRelative(builder, self.isRelative)
         VRInputAddCommand(builder, self.command)
-        VRInputAddResolution(builder, self.resolution)
+        if self.handOrientationQuat is not None:
+            VRInputAddHandOrientationQuat(builder, handOrientationQuat)
         vrinput = VRInputEnd(builder)
         return vrinput
