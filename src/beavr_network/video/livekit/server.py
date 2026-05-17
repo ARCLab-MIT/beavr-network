@@ -591,12 +591,8 @@ class LiveKitMultiStreamServer:
         )
 
         last_frames: dict[str, Any] = {}
-        frames_published: dict[str, int] = {
-            stream.config.track_name: 0 for stream in self._published_streams
-        }
-        no_frame_counts: dict[str, int] = {
-            stream.config.track_name: 0 for stream in self._published_streams
-        }
+        frames_published: dict[str, int] = {stream.config.track_name: 0 for stream in self._published_streams}
+        no_frame_counts: dict[str, int] = {stream.config.track_name: 0 for stream in self._published_streams}
 
         while not self._shutdown:
             for stream in self._published_streams:
