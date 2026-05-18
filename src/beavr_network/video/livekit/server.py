@@ -6,6 +6,7 @@ Uses the production-grade LiveKit SDK instead of manual aiortc WebRTC.
 
 import asyncio
 import logging
+import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -15,6 +16,14 @@ from livekit import api, rtc
 from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
+
+
+def _viewer_identity(track_name: str | None = None) -> str:
+    """Return a LiveKit participant identity that cannot collide across iframe reloads."""
+    suffix = uuid.uuid4().hex
+    if track_name:
+        return f"viewer-{track_name}-{suffix}"
+    return f"viewer-{suffix}"
 
 
 # -----------------------------------------------------------------------------
@@ -148,7 +157,7 @@ class LiveKitStreamServer:
         async def handle_token(request: web.Request) -> web.Response:
             # Generate a viewer token
             token = self._generate_token(
-                identity=f"viewer-{id(request)}",
+                identity=_viewer_identity(),
                 room_name=self._config.room_name,
             )
             return web.Response(text=token, content_type="text/plain")
@@ -490,7 +499,7 @@ class LiveKitMultiStreamServer:
 
         async def handle_token(request: web.Request) -> web.Response:
             token = self._generate_token(
-                identity=f"viewer-{config.track_name}-{id(request)}",
+                identity=_viewer_identity(config.track_name),
                 room_name=config.room_name,
             )
             return web.Response(text=token, content_type="text/plain")

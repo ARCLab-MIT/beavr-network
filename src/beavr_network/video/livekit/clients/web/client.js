@@ -11,6 +11,8 @@ const video = document.getElementById('video');
 let room = null;
 let livekitUrl = null;
 let targetTrackName = null;
+let subscriptionPoll = null;
+let reconnectTimer = null;
 
 function publicationName(publication) {
     return publication?.trackName || publication?.name || publication?.track?.name || null;
@@ -29,6 +31,8 @@ function attachTrack(track, publication) {
 }
 
 function subscribeIfTarget(publication) {
+    if (publication?.kind && publication.kind !== 'video') return;
+
     if (!shouldUsePublication(publication)) {
         const name = publicationName(publication);
         console.log(`Skipping video track ${name}; waiting for ${targetTrackName}`);
@@ -42,6 +46,37 @@ function subscribeIfTarget(publication) {
     }
 }
 
+function scanForTargetTrack() {
+    if (!room) return;
+
+    room.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((publication) => {
+            subscribeIfTarget(publication);
+        });
+    });
+}
+
+function startSubscriptionPoll() {
+    stopSubscriptionPoll();
+    subscriptionPoll = setInterval(scanForTargetTrack, 1000);
+}
+
+function stopSubscriptionPoll() {
+    if (subscriptionPoll) {
+        clearInterval(subscriptionPoll);
+        subscriptionPoll = null;
+    }
+}
+
+function scheduleReconnect() {
+    if (reconnectTimer) return;
+
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        init();
+    }, 5000);
+}
+
 async function init() {
     try {
         const resp = await fetch('/info');
@@ -51,6 +86,7 @@ async function init() {
         await connect();
     } catch (err) {
         console.error('Failed to initialize stream', err);
+        scheduleReconnect();
     }
 }
 
@@ -74,23 +110,25 @@ async function connect() {
         room.on(RoomEvent.Disconnected, () => {
             console.log('Disconnected');
             room = null;
-            // Attempt to reconnect after a delay
-            setTimeout(init, 5000);
+            video.removeAttribute('src');
+            video.load();
+            stopSubscriptionPoll();
+            scheduleReconnect();
         });
 
         await room.connect(livekitUrl, token, { autoSubscribe: false });
-        console.log('Connected to simulation room');
-
-        room.remoteParticipants.forEach((participant) => {
-            participant.trackPublications.forEach((publication) => {
-                if (publication.kind === 'video') subscribeIfTarget(publication);
-            });
-        });
+        console.log('Connected to LiveKit room');
+        scanForTargetTrack();
+        startSubscriptionPoll();
 
     } catch (err) {
         console.error('Connection failed', err);
+        stopSubscriptionPoll();
+        if (room) {
+            room.disconnect();
+        }
         room = null;
-        setTimeout(init, 5000);
+        scheduleReconnect();
     }
 }
 
