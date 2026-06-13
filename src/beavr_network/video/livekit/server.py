@@ -26,6 +26,24 @@ def _viewer_identity(track_name: str | None = None) -> str:
     return f"viewer-{suffix}"
 
 
+def _rgb24_frame_bytes(frame: NDArray[Any], config: "LiveKitConfig") -> bytes:
+    """Validate a camera frame and return bytes suitable for LiveKit RGB24."""
+    expected_shape = (config.height, config.width, 3)
+    shape = getattr(frame, "shape", None)
+    dtype = getattr(frame, "dtype", None)
+    if shape != expected_shape:
+        raise ValueError(
+            f"LiveKit frame shape mismatch for track '{config.track_name}': "
+            f"expected {expected_shape}, got {shape}"
+        )
+    if str(dtype) != "uint8":
+        raise ValueError(
+            f"LiveKit frame dtype mismatch for track '{config.track_name}': "
+            f"expected uint8 RGB24, got {dtype}"
+        )
+    return frame.tobytes()
+
+
 # -----------------------------------------------------------------------------
 # Camera Protocol (same interface as aiortc implementation)
 # -----------------------------------------------------------------------------
@@ -297,11 +315,12 @@ class LiveKitStreamServer:
                 if frame is not None and self._video_source is not None:
                     # Check if this is actually a new frame (simple identity check)
                     if frame is not last_frame:
+                        frame_bytes = _rgb24_frame_bytes(frame, self._config)
                         lk_frame = rtc.VideoFrame(
                             self._config.width,
                             self._config.height,
                             rtc.VideoBufferType.RGB24,
-                            frame.tobytes(),
+                            frame_bytes,
                         )
                         self._video_source.capture_frame(lk_frame)
                         last_frame = frame
@@ -610,11 +629,12 @@ class LiveKitMultiStreamServer:
                     frame = stream.camera.async_read(timeout_ms=0)
                     if frame is not None:
                         if frame is not last_frames.get(track_name):
+                            frame_bytes = _rgb24_frame_bytes(frame, stream.config)
                             lk_frame = rtc.VideoFrame(
                                 stream.config.width,
                                 stream.config.height,
                                 rtc.VideoBufferType.RGB24,
-                                frame.tobytes(),
+                                frame_bytes,
                             )
                             stream.video_source.capture_frame(lk_frame)
                             last_frames[track_name] = frame

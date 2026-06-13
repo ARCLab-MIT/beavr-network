@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from beavr_network.video.livekit import (
@@ -7,7 +8,7 @@ from beavr_network.video.livekit import (
     LiveKitStreamServer,
     create_livekit_server_runtime,
 )
-from beavr_network.video.livekit.server import _viewer_identity
+from beavr_network.video.livekit.server import _rgb24_frame_bytes, _viewer_identity
 
 
 class _FakeCamera:
@@ -51,3 +52,26 @@ def test_viewer_identity_is_unique_for_reloaded_clients():
 
     assert len(identities) == 100
     assert all(identity.startswith("viewer-camera-overhead-") for identity in identities)
+
+
+def test_livekit_frame_bytes_accepts_matching_rgb24_frame():
+    config = LiveKitConfig(track_name="camera", width=4, height=3)
+    frame = np.zeros((3, 4, 3), dtype=np.uint8)
+
+    assert _rgb24_frame_bytes(frame, config) == frame.tobytes()
+
+
+def test_livekit_frame_bytes_rejects_resolution_mismatch():
+    config = LiveKitConfig(track_name="camera", width=4, height=3)
+    frame = np.zeros((2, 4, 3), dtype=np.uint8)
+
+    with pytest.raises(ValueError, match="frame shape mismatch"):
+        _rgb24_frame_bytes(frame, config)
+
+
+def test_livekit_frame_bytes_rejects_non_uint8_frame():
+    config = LiveKitConfig(track_name="camera", width=4, height=3)
+    frame = np.zeros((3, 4, 3), dtype=np.float32)
+
+    with pytest.raises(ValueError, match="frame dtype mismatch"):
+        _rgb24_frame_bytes(frame, config)
