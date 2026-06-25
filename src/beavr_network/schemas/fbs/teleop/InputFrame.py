@@ -99,7 +99,21 @@ class InputFrame(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         return o == 0
 
-def InputFrameStart(builder): builder.StartObject(5)
+    # InputFrame
+    def InputSource(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
+        return 0
+
+    # InputFrame
+    def GripperTrigger(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, o + self._tab.Pos)
+        return 0.0
+
+def InputFrameStart(builder): builder.StartObject(7)
 def Start(builder):
     return InputFrameStart(builder)
 def InputFrameAddKeypoints(builder, keypoints): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(keypoints), 0)
@@ -123,6 +137,12 @@ def AddCoordinateFrame(builder, coordinateFrame):
 def InputFrameStartCoordinateFrameVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartCoordinateFrameVector(builder, numElems):
     return InputFrameStartCoordinateFrameVector(builder, numElems)
+def InputFrameAddInputSource(builder, inputSource): builder.PrependUint8Slot(5, inputSource, 0)
+def AddInputSource(builder, inputSource):
+    return InputFrameAddInputSource(builder, inputSource)
+def InputFrameAddGripperTrigger(builder, gripperTrigger): builder.PrependFloat32Slot(6, gripperTrigger, 0.0)
+def AddGripperTrigger(builder, gripperTrigger):
+    return InputFrameAddGripperTrigger(builder, gripperTrigger)
 def InputFrameEnd(builder): return builder.EndObject()
 def End(builder):
     return InputFrameEnd(builder)
@@ -140,6 +160,8 @@ class InputFrameT(object):
         self.isRelative = 0  # type: int
         self.command = 0  # type: int
         self.coordinateFrame = None  # type: List[float]
+        self.inputSource = 0  # type: int
+        self.gripperTrigger = 0.0  # type: float
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -174,6 +196,8 @@ class InputFrameT(object):
                     self.coordinateFrame.append(inputFrame.CoordinateFrame(i))
             else:
                 self.coordinateFrame = inputFrame.CoordinateFrameAsNumpy()
+        self.inputSource = inputFrame.InputSource()
+        self.gripperTrigger = inputFrame.GripperTrigger()
 
     # InputFrameT
     def Pack(self, builder):
@@ -201,5 +225,7 @@ class InputFrameT(object):
         InputFrameAddCommand(builder, self.command)
         if self.coordinateFrame is not None:
             InputFrameAddCoordinateFrame(builder, coordinateFrame)
+        InputFrameAddInputSource(builder, self.inputSource)
+        InputFrameAddGripperTrigger(builder, self.gripperTrigger)
         inputFrame = InputFrameEnd(builder)
         return inputFrame

@@ -19,6 +19,7 @@ from beavr_network.schemas.fbs.teleop.CommandMessage import (
 )
 from beavr_network.schemas.fbs.teleop.HandSide import HandSide
 from beavr_network.schemas.fbs.teleop.InputFrame import InputFrameT
+from beavr_network.schemas.fbs.teleop.InputSource import InputSource
 from beavr_network.schemas.fbs.teleop.IsRelative import IsRelative
 from beavr_network.schemas.fbs.teleop.JointState import JointStateT
 from beavr_network.schemas.fbs.teleop.KeyboardInput import KeyboardInputT
@@ -50,6 +51,8 @@ class VRInputMessageBuilder:
         hand_side: HandSide,
         is_relative: IsRelative,
         hand_orientation_quat: np.ndarray | None = None,
+        input_source: InputSource = InputSource.hand,
+        gripper_trigger: float = 0.0,
     ) -> bytes:
         """Build a VRInput FlatBuffer message."""
         vr_input_t = VRInputT()
@@ -57,6 +60,8 @@ class VRInputMessageBuilder:
         vr_input_t.handSide = hand_side
         vr_input_t.isRelative = is_relative
         vr_input_t.command = Command.resume  # Default
+        vr_input_t.inputSource = input_source
+        vr_input_t.gripperTrigger = float(np.clip(gripper_trigger, 0.0, 1.0))
         if hand_orientation_quat is not None:
             vr_input_t.handOrientationQuat = hand_orientation_quat.astype(np.float32).ravel()
 
@@ -84,6 +89,8 @@ class InputFrameBuilder:
         keypoints: np.ndarray,
         is_relative: IsRelative,
         command: Command,
+        input_source: InputSource = InputSource.hand,
+        gripper_trigger: float = 0.0,
     ) -> bytes:
         """Build InputFrame FlatBuffer message."""
 
@@ -96,6 +103,8 @@ class InputFrameBuilder:
         input_frame_t.keypoints = keypoints.astype(np.float32).ravel()
         input_frame_t.isRelative = is_relative
         input_frame_t.command = command
+        input_frame_t.inputSource = input_source
+        input_frame_t.gripperTrigger = float(np.clip(gripper_trigger, 0.0, 1.0))
 
         self._input_frame_builder.Clear()
         input_frame = input_frame_t.Pack(self._input_frame_builder)

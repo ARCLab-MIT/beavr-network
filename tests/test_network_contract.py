@@ -5,6 +5,7 @@ from beavr_network.schemas.fbs.teleop.CartesianState import CartesianState
 from beavr_network.schemas.fbs.teleop.Command import Command
 from beavr_network.schemas.fbs.teleop.HandSide import HandSide
 from beavr_network.schemas.fbs.teleop.InputFrame import InputFrame
+from beavr_network.schemas.fbs.teleop.InputSource import InputSource
 from beavr_network.schemas.fbs.teleop.IsRelative import IsRelative
 from beavr_network.schemas.fbs.teleop.JointState import JointState
 from beavr_network.schemas.fbs.teleop.VRInput import VRInput
@@ -87,6 +88,8 @@ def test_input_frame_contract(input_frame_builder):
     assert np.allclose(frame.KeypointsAsNumpy(), keypoints)
     assert frame.IsRelative() == is_relative
     assert frame.Command() == command
+    assert frame.InputSource() == InputSource.hand
+    assert frame.GripperTrigger() == 0.0
 
 
 def test_vr_input_contract_includes_hand_orientation(vr_input_builder):
@@ -108,3 +111,25 @@ def test_vr_input_contract_includes_hand_orientation(vr_input_builder):
     assert vr_input.Command() == Command.resume
     assert np.allclose(vr_input.KeypointsAsNumpy(), keypoints.ravel())
     assert np.allclose(vr_input.HandOrientationQuatAsNumpy(), hand_orientation_quat)
+
+
+def test_controller_vr_input_contract_includes_pose_source_and_trigger(vr_input_builder):
+    """Verify controller frames carry compact pose data and gripper intent."""
+    position = np.array([0.2, -0.1, 0.5], dtype=np.float32)
+    orientation = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+
+    data = vr_input_builder.build_vr_input(
+        position,
+        HandSide.right,
+        IsRelative.relative,
+        hand_orientation_quat=orientation,
+        input_source=InputSource.controller,
+        gripper_trigger=0.75,
+    )
+
+    vr_input = VRInput.GetRootAs(data, 0)
+
+    assert vr_input.InputSource() == InputSource.controller
+    assert np.allclose(vr_input.KeypointsAsNumpy(), position)
+    assert np.allclose(vr_input.HandOrientationQuatAsNumpy(), orientation)
+    assert vr_input.GripperTrigger() == pytest.approx(0.75)

@@ -99,7 +99,21 @@ class VRInput(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         return o == 0
 
-def VRInputStart(builder): builder.StartObject(5)
+    # VRInput
+    def InputSource(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
+        return 0
+
+    # VRInput
+    def GripperTrigger(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Float32Flags, o + self._tab.Pos)
+        return 0.0
+
+def VRInputStart(builder): builder.StartObject(7)
 def Start(builder):
     return VRInputStart(builder)
 def VRInputAddKeypoints(builder, keypoints): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(keypoints), 0)
@@ -123,6 +137,12 @@ def AddHandOrientationQuat(builder, handOrientationQuat):
 def VRInputStartHandOrientationQuatVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def StartHandOrientationQuatVector(builder, numElems):
     return VRInputStartHandOrientationQuatVector(builder, numElems)
+def VRInputAddInputSource(builder, inputSource): builder.PrependUint8Slot(5, inputSource, 0)
+def AddInputSource(builder, inputSource):
+    return VRInputAddInputSource(builder, inputSource)
+def VRInputAddGripperTrigger(builder, gripperTrigger): builder.PrependFloat32Slot(6, gripperTrigger, 0.0)
+def AddGripperTrigger(builder, gripperTrigger):
+    return VRInputAddGripperTrigger(builder, gripperTrigger)
 def VRInputEnd(builder): return builder.EndObject()
 def End(builder):
     return VRInputEnd(builder)
@@ -140,6 +160,8 @@ class VRInputT(object):
         self.isRelative = 0  # type: int
         self.command = 0  # type: int
         self.handOrientationQuat = None  # type: List[float]
+        self.inputSource = 0  # type: int
+        self.gripperTrigger = 0.0  # type: float
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -174,6 +196,8 @@ class VRInputT(object):
                     self.handOrientationQuat.append(vrinput.HandOrientationQuat(i))
             else:
                 self.handOrientationQuat = vrinput.HandOrientationQuatAsNumpy()
+        self.inputSource = vrinput.InputSource()
+        self.gripperTrigger = vrinput.GripperTrigger()
 
     # VRInputT
     def Pack(self, builder):
@@ -201,5 +225,7 @@ class VRInputT(object):
         VRInputAddCommand(builder, self.command)
         if self.handOrientationQuat is not None:
             VRInputAddHandOrientationQuat(builder, handOrientationQuat)
+        VRInputAddInputSource(builder, self.inputSource)
+        VRInputAddGripperTrigger(builder, self.gripperTrigger)
         vrinput = VRInputEnd(builder)
         return vrinput

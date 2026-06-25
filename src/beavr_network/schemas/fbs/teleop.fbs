@@ -27,12 +27,21 @@ enum IsRelative:ubyte {
   absolute = 1
 }
 
+// Identifies whether the payload contains hand keypoints or a controller pose.
+// Hand remains the default so older clients remain compatible.
+enum InputSource:ubyte {
+  hand = 0,
+  controller = 1
+}
+
 table VRInput {
-  keypoints: [float]; // 26 keypoints * 3 coordinates each
+  keypoints: [float]; // Hand: 26 * xyz. Controller: one xyz position.
   hand_side: HandSide;
   is_relative: IsRelative;
   command: Command;
   hand_orientation_quat: [float]; // Unity order: [x, y, z, w]
+  input_source: InputSource = hand;
+  gripper_trigger: float = 0.0; // Controller right index trigger: open=0, closed=1.
 }
 
 table KeyboardInput {
@@ -45,11 +54,13 @@ table KeyboardInput {
 // Stores cartesian poses and keypoint mappings.
 // Helpful for arm and hand robots and should be all you need.
 table InputFrame {
-  keypoints: [float]; // 26 keypoints * 3 coordinates each
+  keypoints: [float]; // Hand: 26 * xyz. Empty for controller frames.
   hand_side: HandSide;
   is_relative: IsRelative;
   command: Command;
   coordinate_frame: [float];
+  input_source: InputSource = hand;
+  gripper_trigger: float = 0.0;
 }
 
 // Simple command message for pause/resume signals
