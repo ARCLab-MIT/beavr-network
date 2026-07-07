@@ -38,8 +38,7 @@ def _rgb24_frame_bytes(frame: NDArray[Any], config: "LiveKitConfig") -> bytes:
         )
     if str(dtype) != "uint8":
         raise ValueError(
-            f"LiveKit frame dtype mismatch for track '{config.track_name}': "
-            f"expected uint8 RGB24, got {dtype}"
+            f"LiveKit frame dtype mismatch for track '{config.track_name}': expected uint8 RGB24, got {dtype}"
         )
     return frame.tobytes()
 
